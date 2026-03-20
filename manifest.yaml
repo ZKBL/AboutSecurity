@@ -26,3 +26,5 @@ modules:
     categories:
       - scan
       - fuzz
+      - poc
+      - osint
