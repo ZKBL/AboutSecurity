@@ -434,7 +434,10 @@ Skills/
 │       └── SKILL.md
 ├── exploit/                  # 漏洞利用类
 │   └── sql-injection-methodology/
-│       └── SKILL.md
+│       ├── SKILL.md          # 精简索引（<100 行）
+│       └── references/       # 深度参考材料
+│           ├── union-error-injection.md
+│           └── blind-injection.md
 ├── ctf/                      # CTF 竞赛类
 ├── postexploit/              # 后渗透类
 ├── lateral/                  # 内网渗透类
@@ -442,9 +445,120 @@ Skills/
 └── general/                  # 综合类
 ```
 
-每个技能一个目录（将来可在目录内添加 `references/` 补充材料）。
+每个技能一个目录。内容较多的技能使用 `references/` 子目录存放深度参考材料（见 2.3 节）。
 
-## 2.3 SKILL.md 格式
+## 2.3 Progressive Disclosure 三级加载机制
+
+加载 Skill 时采用**渐进式披露**策略，避免一次性加载过多内容消耗 token：
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  L1: Metadata（始终加载）                                │
+│  ← name + description + tags                            │
+│  ← Agent 据此决定是否需要此 Skill                        │
+├─────────────────────────────────────────────────────────┤
+│  L2: SKILL.md 正文（触发后加载，<100 行）                 │
+│  ← 精简索引：决策树 + Phase 概要 + 速查表                │
+│  ← 包含 → 读 references/xxx.md 指针                     │
+├─────────────────────────────────────────────────────────┤
+│  L3: references/ 子文件（按需加载）                       │
+│  ← Agent 仅在需要深入某个方向时读取对应文件               │
+│  ← 完整 payload、详细命令、绕过清单、脚本模板             │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 为什么需要三级加载
+
+| 问题 | 旧模式（单文件 200+ 行） | 三级加载 |
+|------|--------------------------|----------|
+| Token 消耗 | Agent 每次加载全部内容 | L2 仅加载索引，L3 按需读取 |
+| 信噪比 | 大量不相关细节干扰 Agent 决策 | 索引帮助 Agent 快速定位方向 |
+| 可维护性 | 单文件膨胀难以维护 | 模块化，各文件职责清晰 |
+
+### SKILL.md 编写规则（L2 层）
+
+**行数限制：< 100 行**（超过 110 行必须拆分到 references/）
+
+SKILL.md 应该是一个**精简索引**，包含：
+
+1. **深入参考链接**（紧跟标题后）
+   ```markdown
+   ## 深入参考
+   - 详细 payload 和绕过技术 → 读 [references/xxx.md](references/xxx.md)
+   ```
+
+2. **Phase 概要**（保留决策树和关键命令，移除冗长列表）
+   ```markdown
+   ## Phase 2: 提权决策树
+   ​```
+   当前权限？
+   ├─ 已是 root → 跳到 Phase 3
+   ├─ 普通用户 → 按优先级：
+   │   1. sudo -l → GTFOBins 提权
+   │   2. find / -perm -4000 → SUID 提权
+   详细命令 → 读 references/linux-privesc-cred.md
+   ​```
+   ```
+
+3. **速查表**（保留在 SKILL.md 中，Agent 高频使用）
+4. **→ 读 references/ 指针**（替代冗长内容块）
+
+### references/ 编写规则（L3 层）
+
+| 规则 | 说明 |
+|------|------|
+| 文件命名 | 语义化英文短横线，如 `injection-bypass.md`、`crypto-techniques.md` |
+| 文件数量 | 1-3 个为宜，不宜过多（Agent 需要决定读哪个） |
+| 内容类型 | 完整 payload 清单、详细命令、绕过技术、脚本模板、CVE 表格 |
+| 独立可读 | 每个文件应有标题，独立阅读时能理解上下文 |
+| 无需前言 | references/ 文件不需要 YAML frontmatter |
+
+### 拆分判断标准
+
+```
+SKILL.md 行数？
+├─ < 100 行 → ✅ 不需要拆分
+├─ 100-110 行 → ⚠️ 建议拆分
+├─ > 110 行 → ❌ 必须拆分到 references/
+```
+
+**哪些内容应该留在 SKILL.md**：
+- YAML 前言（name/description/metadata）
+- 深入参考链接
+- Phase 概述和决策树
+- 最常用的 3-5 条速查命令
+- 注意事项
+
+**哪些内容应该移到 references/**：
+- 完整的 payload/字段/绕过清单（超过 10 条）
+- 详细的利用脚本（超过 5 行的代码块）
+- 特定技术的深度解释（如 Padding Oracle 原理）
+- CVE 利用要点表格
+- Windows/Linux 命令大全
+
+### 示例对比
+
+**❌ 拆分前**（SKILL.md 150+ 行）：
+```markdown
+## Phase 3: sudo 提权
+sudo vim → :!/bin/bash
+sudo find → sudo find / -exec /bin/bash \;
+sudo python3 → sudo python3 -c 'import os; os.system("/bin/bash")'
+sudo awk → sudo awk 'BEGIN {system("/bin/bash")}'
+sudo env → sudo env /bin/bash
+sudo less → !/bin/bash
+sudo nmap → sudo nmap --interactive → !sh
+... （还有 20 条）
+```
+
+**✅ 拆分后**（SKILL.md 65 行 + references/linux-privesc-cred.md）：
+```markdown
+## Phase 2: 提权决策树
+sudo 速查：`vim → :!bash` | `find → -exec bash` | `NOPASSWD: ALL → sudo su`
+→ 完整 sudo/SUID/cron/capabilities 命令 → 读 references/linux-privesc-cred.md
+```
+
+## 2.4 SKILL.md 格式
 
 ```markdown
 ---
@@ -474,7 +588,7 @@ metadata:
 - 关键提醒和常见陷阱
 ```
 
-## 2.4 字段说明
+## 2.5 字段说明
 
 ### 前言字段
 
@@ -489,13 +603,13 @@ metadata:
 
 ### 正文要求
 
-- **< 500 行**（超过说明需要拆分）
+- **< 100 行**（超过需拆分到 `references/`，见 2.3 Progressive Disclosure）
 - **方法论驱动**：写决策树、判断条件、攻击策略，而非工具调用清单
 - **渐进式披露**：先概述，再分阶段深入
 - **包含实际命令示例**：用代码块展示，但作为方法论的一部分而非机械步骤
 - **交叉引用**：用反引号引用其他技能名，如 `参考 \`jwt-attack-methodology\` 技能`
 
-## 2.5 description 写法
+## 2.6 description 写法
 
 Description 是 Agent 选择技能的**唯一依据**，必须"主动推销"：
 
@@ -516,7 +630,7 @@ Description 是 Agent 选择技能的**唯一依据**，必须"主动推销"：
 2. **列出触发场景**（"当...时使用"）
 3. **列出覆盖范围**（"覆盖 X、Y、Z"）
 
-## 2.6 category 枚举
+## 2.7 category 枚举
 
 | 目录 | category 值 | 说明 |
 |------|-------------|------|
@@ -528,7 +642,7 @@ Description 是 Agent 选择技能的**唯一依据**，必须"主动推销"：
 | `cloud/` | 云环境 | 云元数据利用、IAM 审计、云提权 |
 | `general/` | 综合 | 红队评估、报告生成、供应链审计 |
 
-## 2.7 正文写作要点
+## 2.8 正文写作要点
 
 ### 方法论 vs 工具列表
 
@@ -569,7 +683,7 @@ Description 是 Agent 选择技能的**唯一依据**，必须"主动推销"：
 获取 shell 后，参考 `post-exploit-linux` 或 `post-exploit-windows` 进行后渗透。
 ```
 
-## 2.8 完整示例
+## 2.9 完整示例
 
 <details>
 <summary>XSS 方法论（简化示例）</summary>
@@ -611,7 +725,7 @@ metadata:
 ```
 </details>
 
-## 2.9 检查清单
+## 2.10 检查清单
 
 提交 Skill 前，请确认：
 
@@ -619,8 +733,11 @@ metadata:
 - [ ] `description` 包含触发场景和覆盖范围（不只是功能名称）
 - [ ] `tags` 包含中英文关键词
 - [ ] `category` 是规范的枚举值
-- [ ] 正文 < 500 行
+- [ ] 正文 < 100 行（超过 110 行必须拆分，见 2.3 节）
 - [ ] 正文是方法论（有决策树/判断条件），不是工具调用清单
+- [ ] **SKILL.md < 100 行**（超过 110 行必须拆分到 `references/`，见 2.3 节）
+- [ ] 超过 100 行的内容已拆分到 `references/` 子目录，SKILL.md 中有 `→ 读 references/xxx.md` 指针
+- [ ] `references/` 文件命名语义化（如 `injection-bypass.md`），独立可读
 - [ ] 没有使用 `{{target}}` 等模板变量
 - [ ] 有交叉引用到相关技能（如适用）
 - [ ] `difficulty` 与实际复杂度匹配
