@@ -1,17 +1,63 @@
 ---
 name: target-profiling
-description: "对目标进行全景画像：资产+端口+指纹+技术栈，输出完整目标档案"
+description: "目标全景画像与攻击面分析。当需要系统性整理目标资产、生成结构化目标档案、或在多人协作渗透中需要共享目标信息时使用。侧重于分析和报告，而非扫描本身。适合在 recon-full 之后对数据进行深度分析"
 metadata:
-  tags: "recon,profiling,fingerprint,port"
+  tags: "recon,profiling,fingerprint,port,画像,档案,资产分析,攻击面评估"
   difficulty: "medium"
   icon: "📊"
   category: "侦察"
 ---
 
-请对目标 {{target}} 执行全景画像分析：
-1. 使用 scan_dns 获取子域名
-2. 使用 scan_port 扫描所有发现资产的端口
-3. 使用 scan_urlive 检测 URL 存活
-4. 使用 scan_finger 识别技术栈和框架
-5. 使用 query_assets 和 query_vulnerabilities 汇总已有数据
-输出一份完整的目标档案，包括：技术栈分布、暴露服务统计、高风险端口、潜在攻击入口。
+# 目标全景画像方法论
+
+本技能与 `recon-full`（主动扫描）互补：recon-full 负责「发现」，target-profiling 负责「分析和整理」。如果还没做侦察，先执行 recon-full。
+
+## Phase 1: 数据汇总
+用 `query_assets` 和 `query_vulnerabilities` 获取已有的侦察数据。如果数据不足，补充执行：
+- `scan_dns` — 子域名
+- `scan_port` — 端口
+- `scan_finger` — 指纹
+
+## Phase 2: 攻击面分析
+
+### 2.1 技术栈分布
+统计目标使用的技术栈，识别统一管理的和独立部署的系统：
+- 统一框架（如全站 Spring Boot）→ 一个漏洞可能影响所有系统
+- 混合技术栈 → 各系统独立评估
+
+### 2.2 暴露面评估
+按风险等级分类已发现的服务：
+
+**极高风险**（应优先攻击）：
+- 管理后台（admin/manager/console）
+- 开发/测试环境（dev/staging/test）
+- 暴露的数据库端口（3306/5432/6379/27017）
+- CI/CD 系统（Jenkins/GitLab/Harbor）
+
+**高风险**：
+- 带已知漏洞的组件（旧版 Spring/Struts/Log4j）
+- 认证页面（可能存在弱密码/默认凭据）
+- API 端点（可能缺少认证）
+
+**中风险**：
+- 标准 Web 应用（需要进一步手动测试）
+- 邮件/VPN 入口（社工攻击入口）
+
+**低风险**：
+- CDN/静态资源
+- 纯展示型网站
+
+### 2.3 网络拓扑推断
+从子域名和 IP 分布推断网络结构：
+- 同一 IP 段 → 可能同一机房/VPC
+- CDN 后的真实 IP → 可能绕过 WAF
+- 内外网混部 → 横向移动的潜在路径
+
+## Phase 3: 输出目标档案
+
+生成结构化报告，包含：
+1. **资产清单**：域名/IP/端口/服务/版本
+2. **技术栈总览**：框架/中间件/CMS 分布
+3. **攻击优先级**：按风险等级排序的攻击目标列表
+4. **推荐攻击路径**：基于发现的信息，建议 2-3 条最有可能成功的攻击路径
+5. **信息缺口**：还需要进一步侦察的方面

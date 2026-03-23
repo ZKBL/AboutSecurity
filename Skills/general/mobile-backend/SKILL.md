@@ -8,10 +8,10 @@ metadata:
   category: "综合"
 ---
 
-请对移动端后端 API {{target}} 执行安全测试：
+请对移动端后端 API 目标 执行安全测试：
 1. 使用 brute_dir 发现 API 端点（重点: /api/v1/, /api/v2/, /graphql）
 2. 使用 scan_finger 识别后端技术栈
-3. 使用 poc_scan_web 检测已知漏洞
+3. 使用 poc_web 检测已知漏洞
 4. 使用 fuzz_bypass 尝试认证绕过
 重点关注：
 - API 认证机制弱点（JWT/OAuth/API Key）

@@ -8,7 +8,7 @@ metadata:
   category: "内网渗透"
 ---
 
-请对内网网段 {{target}} 执行信息收集：
+请对内网网段 目标 执行信息收集：
 1. 使用 scan_port 扫描网段内存活主机和开放端口
 2. 使用 scan_finger 对发现的服务进行指纹识别
 3. 使用 query_assets 查看已收集的资产清单

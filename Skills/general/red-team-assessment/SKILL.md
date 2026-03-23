@@ -8,7 +8,7 @@ metadata:
   category: "综合"
 ---
 
-请执行全面的红队评估（目标: {{target}}）：
+请执行全面的红队评估（目标: 目标）：
 测试范围: {{scope}}
 
 **Phase 1: 被动侦察**
@@ -21,7 +21,7 @@ metadata:
 5. 使用 scan_finger 识别技术栈
 
 **Phase 3: 漏洞评估**
-6. 使用 poc_scan_web 扫描 Web 漏洞
+6. 使用 poc_web 扫描 Web 漏洞
 7. 使用 poc_default_login 检测默认口令
 8. 使用 brute_dir 发现隐藏路径
 

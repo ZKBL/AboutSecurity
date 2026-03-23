@@ -8,7 +8,7 @@ metadata:
   category: "综合"
 ---
 
-请对目标 {{target}} 执行外网打点全流程自动化渗透：
+请对目标 执行外网打点全流程自动化渗透：
 
 **阶段1 - 侦察**
 1. 使用 scan_dns 进行子域名枚举
@@ -17,7 +17,7 @@ metadata:
 4. 使用 scan_finger 识别技术栈
 
 **阶段2 - 漏洞发现**
-5. 使用 poc_scan_web 进行漏洞扫描
+5. 使用 poc_web 进行漏洞扫描
 6. 使用 poc_default_login 检测默认口令
 
 **阶段3 - 利用与驻留**

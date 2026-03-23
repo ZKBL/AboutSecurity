@@ -8,7 +8,7 @@ metadata:
   category: "内网渗透"
 ---
 
-请制定多层代理穿透方案（跳板机: {{pivot_host}}，最终目标: {{target}}）：
+请制定多层代理穿透方案（跳板机: 跳板机IP，最终目标: 目标）：
 1. 使用 proxy_list_tunnels 查看可用代理通道
 2. 使用 lateral_list_methods 列出隧道/代理技术
 3. 使用 lateral_generate_command 生成隧道建立命令
