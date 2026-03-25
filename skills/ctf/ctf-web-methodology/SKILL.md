@@ -10,19 +10,23 @@ metadata:
 
 # CTF Web 挑战方法论
 
-## ⛔ 深入参考（必读）（来自 ctf-skills 技术库）
+## 深入参考
 
-- ⛔**必读** 服务端注入（SQLi/SSTI/LFI/XXE/SSRF） → `read_skill(id="ctf-web-methodology", path="references/server-side.md")`
-- ⛔**必读** 服务端执行（命令注入/RCE/文件上传/CRLF） → `read_skill(id="ctf-web-methodology", path="references/server-side-exec.md")`
-- ⛔**必读** 服务端高级（Race Condition/HTTP走私/缓存投毒） → `read_skill(id="ctf-web-methodology", path="references/server-side-advanced.md")`
-- ⛔**必读** 反序列化（PHP/Java/Python/Node/.NET） → `read_skill(id="ctf-web-methodology", path="references/server-side-deser.md")`
-- ⛔**必读** 认证与访问（密码/MFA/OAuth/IDOR/逻辑漏洞） → `read_skill(id="ctf-web-methodology", path="references/auth-and-access.md")`
-- ⛔**必读** JWT 攻击（none/弱密钥/JWK注入/算法混淆） → `read_skill(id="ctf-web-methodology", path="references/auth-jwt.md")`
-- ⛔**必读** 认证基础设施（LDAP/Kerberos/SAML/证书） → `read_skill(id="ctf-web-methodology", path="references/auth-infra.md")`
-- ⛔**必读** 客户端（XSS/CSP绕过/DOM/CSS注入） → `read_skill(id="ctf-web-methodology", path="references/client-side.md")`
-- ⛔**必读** Node.js 与原型链污染 → `read_skill(id="ctf-web-methodology", path="references/node-and-prototype.md")`
-- ⛔**必读** CVE 利用集（Log4Shell/Gitea/Grafana等） → `read_skill(id="ctf-web-methodology", path="references/cves.md")`
-- ⛔**必读** Web3/区块链（Solidity/重入/闪电贷） → `read_skill(id="ctf-web-methodology", path="references/web3.md")`
+以下参考资料**按需加载**，根据 Phase 2 识别出的挑战类型选择对应文件：
+
+- 服务端注入（SQLi/SSTI/LFI/XXE/SSRF） → `read_skill(id="ctf-web-methodology", path="references/server-side.md")`
+- 服务端执行（命令注入/RCE/文件上传/CRLF） → `read_skill(id="ctf-web-methodology", path="references/server-side-exec.md")`
+- 服务端高级（Race Condition/HTTP走私/缓存投毒） → `read_skill(id="ctf-web-methodology", path="references/server-side-advanced.md")`
+- 反序列化（PHP/Java/Python/Node/.NET） → `read_skill(id="ctf-web-methodology", path="references/server-side-deser.md")`
+- 认证与访问（密码/MFA/OAuth/IDOR/逻辑漏洞） → `read_skill(id="ctf-web-methodology", path="references/auth-and-access.md")`
+- JWT 攻击（none/弱密钥/JWK注入/算法混淆） → `read_skill(id="ctf-web-methodology", path="references/auth-jwt.md")`
+- 认证基础设施（LDAP/Kerberos/SAML/证书） → `read_skill(id="ctf-web-methodology", path="references/auth-infra.md")`
+- 客户端（XSS/CSP绕过/DOM/CSS注入） → `read_skill(id="ctf-web-methodology", path="references/client-side.md")`
+- Node.js 与原型链污染 → `read_skill(id="ctf-web-methodology", path="references/node-and-prototype.md")`
+- CVE 利用集（Log4Shell/Gitea/Grafana等） → `read_skill(id="ctf-web-methodology", path="references/cves.md")`
+- Web3/区块链（Solidity/重入/闪电贷） → `read_skill(id="ctf-web-methodology", path="references/web3.md")`
+- ⛔**必读** HTTP 响应分析技巧 → `read_skill(id="ctf-web-methodology", path="references/response-analysis.md")`
+- ⛔**必读** Flag 提取方法论 → `read_skill(id="ctf-web-methodology", path="references/flag-extraction.md")`
 
 ---
 

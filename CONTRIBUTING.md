@@ -513,6 +513,27 @@ SKILL.md 应该是一个**精简索引**，包含：
 | 独立可读 | 每个文件应有标题，独立阅读时能理解上下文 |
 | 无需前言 | references/ 文件不需要 YAML frontmatter |
 
+### ⛔必读 标记使用规范
+
+`⛔必读` 标记表示 Agent **加载此 Skill 后必须立即读取**的 reference 文件。滥用此标记会导致 Agent 一次性加载大量内容，消耗 token 且降低信噪比。
+
+**标记原则**：
+
+| 情况 | 标记方式 | 说明 |
+|------|----------|------|
+| 每次使用此 Skill 都需要的通用知识 | ⛔**必读** | 如 `response-analysis.md`（54行）、`flag-extraction.md`（59行） |
+| 确认具体漏洞类型后才需要的深入内容 | **按需**（不标 ⛔） | 如 "发现 SQL 注入 → 读 server-side.md" |
+| 特定技术栈才需要的参考 | **按需**（不标 ⛔） | 如 "遇到 JWT → 读 auth-jwt.md" |
+
+**反模式**：
+- ❌ 所有 reference 都标 ⛔必读 — 等于回到单文件模式，Progressive Disclosure 失效
+- ❌ 索引型 Skill（如总方法论）的所有子领域文件标必读 — Agent 无法判断轻重缓急
+
+**正确做法**：
+- 按需 reference 在 SKILL.md 中按场景分组，注明触发条件（如"识别到注入类漏洞时读取"）
+- ⛔必读 仅用于体量小（<100行）且普遍适用的文件
+- 索引型 Skill 的 Phase 决策表应引导 Agent 去读**对应的专门 Skill**（如 `sql-injection-methodology`），而非自己的 reference
+
 ### 拆分判断标准
 
 ```
@@ -738,6 +759,7 @@ metadata:
 - [ ] **SKILL.md < 100 行**（超过 110 行必须拆分到 `references/`，见 2.3 节）
 - [ ] 超过 100 行的内容已拆分到 `references/` 子目录，SKILL.md 中有 `→ 读 references/xxx.md` 指针
 - [ ] `references/` 文件命名语义化（如 `injection-bypass.md`），独立可读
+- [ ] ⛔必读 标记仅用于体量小且普遍适用的 reference，非所有文件都标必读（见 2.3 ⛔必读标记规范）
 - [ ] 没有使用 `{{target}}` 等模板变量
 - [ ] 有交叉引用到相关技能（如适用）
 - [ ] `difficulty` 与实际复杂度匹配
