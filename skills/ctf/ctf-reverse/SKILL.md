@@ -1,6 +1,6 @@
 ---
 name: ctf-reverse
-description: "CTF 逆向工程技术。用于分析二进制文件、游戏客户端、混淆代码、自定义VM、反调试绕过、WASM/.NET/APK/Python字节码/Go/Rust 逆向等 CTF 逆向类挑战"
+description: "CTF 逆向工程技术。当挑战提供未知二进制文件需要分析算法逻辑、游戏客户端需要破解验证、混淆代码需要还原、自定义 VM 需要解释执行时使用。覆盖 Ghidra/IDA 静态分析、GDB/Frida 动态调试、反调试绕过、WASM/.NET/APK/Python 字节码/Go/Rust 多平台逆向"
 metadata:
   tags: "ctf,reverse,逆向,ghidra,gdb,ida,frida,angr,反调试,binary,ELF,binary analysis,disassembly"
   difficulty: "hard"

@@ -1,6 +1,6 @@
 ---
 name: ctf-osint
-description: "CTF 开源情报(OSINT)技术。用于社交媒体调查、地理定位、DNS侦察、Google Dorking、反向图片搜索、用户名枚举、Wayback Machine、Tor中继查询等 CTF OSINT 类挑战"
+description: "CTF 开源情报(OSINT)技术。当挑战要求从公开信息中找线索——如给定用户名/邮箱追踪身份、给定照片进行地理定位、从历史网页快照中恢复数据时使用。覆盖社交媒体调查、Google Dorking、反向图片搜索、Wayback Machine、DNS 侦察、Tor 中继查询、元数据提取"
 metadata:
   tags: "ctf,osint,开源情报,geolocation,社交媒体,dns,dorking,图片搜索"
   difficulty: "medium"

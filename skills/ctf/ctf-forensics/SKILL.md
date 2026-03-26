@@ -1,6 +1,6 @@
 ---
 name: ctf-forensics
-description: "CTF 数字取证与信号分析技术。用于磁盘镜像分析、内存取证、网络流量分析、隐写术、Windows 事件日志、区块链追踪、硬件信号解码等 CTF 取证类挑战"
+description: "CTF 数字取证与信号分析技术。当挑战提供磁盘镜像(.dd/.E01)、内存 dump(.raw/.vmem)、网络抓包(.pcap/.pcapng)、隐写图片/音频、Windows 事件日志(.evtx)时使用。覆盖 Volatility 内存分析、Wireshark 流量还原、binwalk 隐写提取、文件系统恢复等取证全链路"
 metadata:
   tags: "ctf,forensics,取证,volatility,pcap,steganography,隐写,磁盘,内存,网络"
   difficulty: "hard"
