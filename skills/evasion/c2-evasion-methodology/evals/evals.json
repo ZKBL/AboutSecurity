@@ -4,7 +4,7 @@
     {
       "id": 1,
       "name": "c2-yara-analysis",
-      "prompt": "给定一个 C2 框架的源码和对应的 YARA 检测规则，分析其检测特征并提出修改方案。",
+      "prompt": "Cobalt Strike beacon 被 YARA 规则检测：rule CobaltStrikeBeacon { strings: $s1 = \"cobaltstrike\" ascii $a1 = \"%s\\\\system32\\\\%s\" ascii ... }。请描述你如何分析这个 YARA 规则，定位源码中的问题特征，以及按优先级排序的修改方案。",
       "expected_output": "逐规则分析 pattern，定位源码对应位置，提出编译器标志优先的免杀策略",
       "expectations": [
         "逐规则分析|pattern|strings|定位特征",
