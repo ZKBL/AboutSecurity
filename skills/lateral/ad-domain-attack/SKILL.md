@@ -68,6 +68,14 @@ netexec smb 10.0.0.0/24 -u admin -H NTLM_HASH   # PTH
 | 票据攻击 | impacket 套件 |
 | 密码破解 | hashcat |
 | 漏洞利用 | certipy (ADCS), zerologon 脚本 |
+| NTLM 中继 | ntlmrelayx + Responder |
+| 证书攻击 | certipy (ESC1-ESC11) |
+
+## 关联技能
+
+- **ADCS 证书攻击**（ESC1-ESC11 完整利用链）→ `read_skill(id="adcs-certipy-attack")`
+- **NTLM 中继攻击**（Responder/PetitPotam/Relay）→ `read_skill(id="ntlm-relay-attack")`
+- **横向移动**（WinRM/PSExec/PTH/PTT）→ `read_skill(id="lateral-movement")`
 
 ## Password Spray 安全策略
 - 检查域密码策略：Lockout duration（锁定时长/冷却时间）
