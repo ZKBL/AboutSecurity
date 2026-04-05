@@ -1,6 +1,6 @@
 ---
 name: ctf-crypto
-description: "CTF 密码学攻击技术。用于 RSA/AES/ECC/格密码/PRNG/ZKP/古典密码等 CTF 加密类挑战。覆盖从古典替换密码到现代公钥密码、椭圆曲线、格攻击、零知识证明等全方位密码学攻防技术"
+description: "CTF 密码学攻击技术。用于 RSA/AES/ECC/格密码/PRNG/ZKP/古典密码等 CTF 加密类挑战。当遇到加密数据需要破解、密码学相关 CTF 题目、需要分析加密算法弱点、或识别到密文/公钥/密码学参数时使用。覆盖从古典替换密码到现代公钥密码、椭圆曲线、格攻击、零知识证明等全方位密码学攻防技术"
 metadata:
   tags: "ctf,crypto,rsa,aes,ecc,lattice,prng,zkp,密码学,加密,低指数攻击,crypto challenge,密码题"
   category: "ctf"

@@ -1,6 +1,6 @@
 ---
 name: judge-ctf
-description: "CTF 夺旗决策 Agent 评估清单。用于评估 CTF 挑战是否完成（flag 是否找到），分析未找到 flag 的原因，并给出精准的 flag 获取指导。"
+description: "CTF 夺旗决策 Agent 评估清单。用于评估 CTF 挑战是否完成（flag 是否找到），分析未找到 flag 的原因，并给出精准的 flag 获取指导。当 CTF 攻击陷入僵局、需要判断是否遗漏攻击路径、或已获取疑似 flag 需要验证格式时使用"
 metadata:
   tags: "judge,评估,ctf,flag,决策"
   category: "general"
