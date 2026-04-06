@@ -16,5 +16,5 @@
 
 ## 🔧 工具偏好
 1. `read_skill(path="references/...")` — 查组件库和场景
-2. `shell_execute` — 交叉编译验证
-3. `write_file` — 生成 Loader 源码
+2. `bash` — 交叉编译验证
+3. 直接创建文件 — 生成 Loader 源码

@@ -1,27 +1,31 @@
 ---
 name: local-resources
-description: "本地资源库导航——字典库(Dic)、Payload库、POC库的结构和使用方法。当需要使用 ffuf/dirsearch 目录爆破、hydra 密码爆破、或构造 Fuzz payload 时必读。覆盖字典选择策略、payload 模板调用、POC 库搜索方法。禁止硬编码路径——必须用 dict_resolve 获取绝对路径"
+description: "本地资源库导航——字典库(Dic)、Payload库、POC库的结构和使用方法。当需要使用 ffuf/spray 目录爆破、密码爆破、或构造 Fuzz payload 时必读。覆盖字典选择策略、payload 模板调用、POC 库搜索方法。字典库统一安装在 /pentest 目录下"
 metadata:
   category: "general"
-  tags: "dictionary,wordlist,payload,poc,ffuf,dirsearch,hydra,resource,字典,工具"
+  tags: "dictionary,wordlist,payload,poc,ffuf,spray,resource,字典,工具"
 ---
 
 # 本地资源库导航
 
-⚠️ **核心规则：禁止猜测路径** — 所有字典/payload 文件通过工具获取路径，不要硬编码 `/usr/share/wordlists/` 等系统路径。
+⚠️ **核心规则：字典统一在 /pentest 目录** — aboutsecurity 字典库和 nuclei 模板库均安装在 `/pentest/` 下。
 
 ## 📁 字典库 (Dic/) — 目录爆破 / 密码爆破 / 参数 Fuzz
 
 ### 工具链
-```
-dict_list()                         → 查看所有分类
-dict_list(category="Web")           → 查看 Web 字典子分类
-dict_resolve(path="Web/Directory/Fuzz_common.txt")  → 获取绝对路径给 ffuf -w
+```bash
+# 查看字典库分类
+ls /pentest/aboutsecurity/Dic/
+# 查看 Web 字典子分类
+ls /pentest/aboutsecurity/Dic/Web/
+# 使用字典（示例）
+spray -u http://target -d /pentest/aboutsecurity/Dic/Web/Directory/Fuzz_common.txt
+ffuf -u http://target/FUZZ -w /pentest/aboutsecurity/Dic/Web/Directory/Fuzz_common.txt
 ```
 
 ### 常用字典速查表
 
-| 场景 | dict_resolve 路径 | 行数 |
+| 场景 | 路径 | 行数 |
 |------|-------------------|------|
 | 通用目录爆破 | `Web/Directory/Fuzz_common.txt` | ~5k |
 | PHP 文件发现 | `Web/Directory/php/Fuzz_php.txt` | ~48k |
@@ -55,9 +59,13 @@ dict_resolve(path="Web/Directory/Fuzz_common.txt")  → 获取绝对路径给 ff
 ## 📁 Payload 库 — 漏洞验证 payload
 
 ### 工具链
-```
-payload_list()                            → 查看所有分类
-payload_get(category="SQL-Inj", filename="xxx.txt")  → 获取 payload 内容
+```bash
+# 查看 aboutsecurity 字典库分类
+ls /pentest/aboutsecurity/Dic/
+# 查看 nuclei 模板库
+ls ~/nuclei-templates/
+# 读取具体 payload 文件
+cat /pentest/aboutsecurity/Dic/SQL-Inj/bypass-waf.txt
 ```
 
 ### 可用分类
@@ -66,17 +74,17 @@ SQL-Inj | XSS | LFI | SSRF | XXE | RCE | 403 绕过 | upload | CORS | HPP | SSI
 ## ⚠️ 使用外部工具的正确流程
 
 ```
-❌ 错误：shell_execute("ffuf -u http://target/FUZZ -w /usr/share/wordlists/common.txt")
-                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                                                        猜测路径，大概率不存在
+❌ 错误：ffuf -u http://target/FUZZ -w /usr/share/wordlists/common.txt
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                        猜测路径，大概率不存在
 
 ✅ 正确：
-1. dict_resolve(path="Web/Directory/Fuzz_common.txt")  → 获取绝对路径
-2. shell_execute("ffuf -u http://target/FUZZ -w /实际/绝对/路径/Fuzz_common.txt")
+1. ls /pentest/aboutsecurity/Dic/Web/Directory/  → 确认字典存在
+2. ffuf -u http://target/FUZZ -w /pentest/aboutsecurity/Dic/Web/Directory/Fuzz_common.txt
 ```
 
 ## 💡 高效使用提示
 
-1. **brute_dir 内置工具已封装字典** — 如果只是简单目录爆破，直接用 brute_dir(target, dictType="php")
-2. **dict_resolve 用于 ffuf/dirsearch** — 需要自定义参数（如 -e .bak -mc 200）时用 dict_resolve + shell_execute
+1. **spray / ffuf 已封装字典** — 如果只是简单目录爆破，直接用 `spray -u target -d wordlist.txt` 或 `ffuf -u target/FUZZ -w wordlist.txt`
+2. **自定义参数用 ffuf** — 需要自定义参数（如 -e .bak -mc 200）时用 `ffuf -u target/FUZZ -w /pentest/aboutsecurity/Dic/...`
 3. **CTF 场景优先用小字典** — Web/CTF/ 下的字典精简且针对性强，避免大字典浪费时间

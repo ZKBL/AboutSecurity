@@ -18,19 +18,21 @@ metadata:
 
 ### 前端 JS 库识别
 ```bash
-scan_crawl target="http://target"
+katana -u http://target -silent -d 2
 ```
 从 HTML/JS 提取：`<script src="...jquery-3.6.0.min.js">` → jQuery 3.6.0
 
 ### 后端技术栈
 ```bash
-scan_finger target="http://target"
+curl -sI http://target | grep -i "Server\|X-Powered-By\|X-AspNet"
+httpx -u http://target -tech-detect -silent
 ```
 响应头：`X-Powered-By: Express` | `Server: Apache/2.4.41` | `X-AspNet-Version`
 
 ### 子域名 → 第三方服务映射
 ```bash
-scan_dns target="target.com"
+subfinder -d target.com -silent
+ksubdomain -d target.com
 ```
 检查 CNAME：`status.target.com → statuspage.io` | `docs.target.com → gitbook.io`
 
@@ -41,7 +43,7 @@ scan_dns target="target.com"
 - Log4j 2.0-2.14.1 → RCE | Apache 2.4.49-2.4.50 → 路径穿越 RCE
 
 ```bash
-poc_web target="http://target"
+nuclei -u http://target -severity critical,high
 ```
 
 ## Phase 3: 子域名接管

@@ -13,7 +13,7 @@ metadata:
 ## Phase 1: 多引擎资产搜索
 
 ### FOFA
-`osint_fofa` — 国内最大的网络空间测绘引擎，适合发现国内资产。
+通过 `http_request` 或 `curl` 查询 FOFA API（`https://fofa.info/api/v1/search/all?...`）— 国内最大的网络空间测绘引擎，适合发现国内资产。
 
 常用查询模式：
 - 域名资产：`domain="example.com"`
@@ -22,7 +22,7 @@ metadata:
 - 特定组件：`domain="example.com" && app="WordPress"`
 
 ### Quake
-`osint_quake` — 360 网络空间测绘，擅长深度指纹识别。
+通过 `http_request` 或 `curl` 查询 Quake API（`https://quake.360.net/api/v3/search/quake_service`）— 360 网络空间测绘，擅长深度指纹识别。
 
 常用查询模式：
 - 域名：`domain:"example.com"`
@@ -30,7 +30,7 @@ metadata:
 - 组件：`domain:"example.com" AND app:"Apache Tomcat"`
 
 ### Hunter
-`osint_hunter` — 鹰图平台，擅长 IP 关联分析和资产聚合。
+通过 `http_request` 或 `curl` 查询 Hunter API（`https://hunter.qianxin.com/openApi/search`）— 鹰图平台，擅长 IP 关联分析和资产聚合。
 
 ## Phase 2: 结果交叉比对
 

@@ -52,5 +52,5 @@ fscan -h 10.0.0.0/24 -nopoc
 - 用收集到的凭据尝试连接
 
 ### 管理系统
-- 指纹识别 Web 服务（`scan_finger`）→ 发现 Jenkins/GitLab/Zabbix
+- 指纹识别 Web 服务（`httpx -tech-detect` / `curl -sI`）→ 发现 Jenkins/GitLab/Zabbix
 - 通常有弱密码或已知漏洞

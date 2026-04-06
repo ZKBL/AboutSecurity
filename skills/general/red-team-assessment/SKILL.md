@@ -15,7 +15,7 @@ metadata:
 在不触碰目标的情况下收集情报：
 
 1. **OSINT 搜索引擎**（参考 `passive-recon` 技能）
-   - `osint_fofa` / `osint_quake` / `osint_hunter` 三引擎交叉搜索
+   - 通过 `http_request` 或 `curl` 查询 FOFA / Quake / Hunter API 三引擎交叉搜索
    - 目标：IP/域名资产清单、暴露的服务、技术栈
 
 2. **公开信息收集**
@@ -29,19 +29,19 @@ metadata:
 
 基于被动侦察结果，有针对性地主动探测（参考 `recon-full` 技能）：
 
-1. **子域名枚举** — `scan_dns`
-2. **端口扫描** — `scan_port`（聚焦高价值端口）
-3. **存活检测** — `scan_urlive`（确认 HTTP 服务）
-4. **指纹识别** — `scan_finger`（技术栈 → 决定攻击方向）
-5. **目录爆破** — `brute_dir`（发现隐藏入口）
+1. **子域名枚举** — `subfinder` / `ksubdomain`
+2. **端口扫描** — `naabu`（聚焦高价值端口，nmap 作为备选）
+3. **存活检测** — `httpx`（确认 HTTP 服务）
+4. **指纹识别** — `httpx -tech-detect` / `nuclei -t technologies/`（技术栈 → 决定攻击方向）
+5. **目录爆破** — `spray` / `ffuf`（发现隐藏入口）
 
 **产出**：完整资产地图（域名+IP+端口+技术栈+隐藏路径）
 
 ## Phase 3: 漏洞发现
 
 ### 3.1 自动化扫描
-- `poc_web` — Nuclei POC 全量扫描
-- `poc_default_login` — 默认口令检测
+- `nuclei -u TARGET -severity critical,high` — Nuclei POC 扫描
+- `nuclei -u TARGET -t default-logins/` — 默认口令检测
 
 ### 3.2 手动测试（按资产类型）
 对每个 Web 应用，根据技术栈选择专项测试：

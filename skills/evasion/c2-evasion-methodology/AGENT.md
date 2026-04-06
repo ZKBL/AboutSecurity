@@ -17,7 +17,7 @@
 - ALWAYS 每个 Phase 开始前读取对应的 references 文档
 
 ## 🔧 工具偏好
-1. `shell_execute grep/find` — 搜索源码中的检测特征
-2. `shell_execute` — 编译验证
+1. `grep`/`find` — 搜索源码中的检测特征
+2. `bash` — 编译验证
 3. `read_skill(path="references/...")` — 每个 Phase 的详细步骤
 4. `http_request` — 搜索在线 YARA/Sigma 规则库

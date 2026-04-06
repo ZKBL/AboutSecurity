@@ -16,5 +16,5 @@
 
 ## 🔧 工具偏好
 1. `read_skill(path="references/...")` — 查技术库和整合模式
-2. `shell_execute` — 交叉编译验证
-3. `write_file` — 修改 Loader 源码
+2. `bash` — 交叉编译验证
+3. 直接创建/编辑文件 — 修改 Loader 源码

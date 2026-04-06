@@ -14,9 +14,9 @@ metadata:
 
 先收集所有已有数据：
 - `get_store_stats` — 整体统计
-- `query_assets` — 资产清单
-- `query_vulnerabilities` — 漏洞列表
-- `query_credentials` — 凭据（脱敏后放入报告）
+- `evidence_list`（按类型筛选）— 资产清单
+- `list_vulns` — 漏洞列表
+- `evidence_list` + `evidence_read`（筛选凭据类型）— 凭据（脱敏后放入报告）
 
 ## 报告结构模板
 

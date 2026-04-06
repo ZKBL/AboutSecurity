@@ -49,6 +49,6 @@
 
 在报告任何 FLAG{} 之前：
 ```
-shell_execute command="python3 -c \"flag='你提取的flag'; print(len(flag)); assert len(flag) >= 64\""
+python3 -c "flag='你提取的flag'; print(len(flag)); assert len(flag) >= 64"
 ```
 如果从 SQL 注入 LENGTH() 获得了期望长度，必须验证 `len(flag) == expected_len`。

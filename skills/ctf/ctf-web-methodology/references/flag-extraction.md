@@ -6,28 +6,28 @@
 
 1. **读 Dockerfile**（最优先 — 直接告诉你 flag 写入路径）
 ```
-shell_execute command="cat /Dockerfile 2>/dev/null || cat /app/Dockerfile 2>/dev/null"
+cat /Dockerfile 2>/dev/null || cat /app/Dockerfile 2>/dev/null
 ```
 典型模式：`RUN echo $FLAG > /FLAG.txt` 或 `COPY flag.txt /flag`
 
 2. **读应用源码**（了解 flag 如何被使用）
 ```
-shell_execute command="cat /app/app.py 2>/dev/null; cat /app/index.php 2>/dev/null; cat /var/www/html/index.php 2>/dev/null"
+cat /app/app.py 2>/dev/null; cat /app/index.php 2>/dev/null; cat /var/www/html/index.php 2>/dev/null
 ```
 
 3. **列出根目录**（注意大小写差异）
 ```
-shell_execute command="ls -la / | grep -i flag"
+ls -la / | grep -i flag
 ```
 
 4. **搜索文件系统**
 ```
-shell_execute command="find / -name '*flag*' -o -name '*FLAG*' 2>/dev/null | head -20"
+find / -name '*flag*' -o -name '*FLAG*' 2>/dev/null | head -20
 ```
 
 5. **检查环境变量**
 ```
-shell_execute command="env | grep -i flag; echo '---'; cat /proc/1/environ 2>/dev/null | tr '\0' '\n' | grep -i flag"
+env | grep -i flag; echo '---'; cat /proc/1/environ 2>/dev/null | tr '\0' '\n' | grep -i flag
 ```
 
 ## 常见 flag 位置

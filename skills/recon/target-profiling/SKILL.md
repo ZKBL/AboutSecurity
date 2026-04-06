@@ -11,10 +11,10 @@ metadata:
 本技能与 `recon-full`（主动扫描）互补：recon-full 负责「发现」，target-profiling 负责「分析和整理」。如果还没做侦察，先执行 recon-full。
 
 ## Phase 1: 数据汇总
-用 `query_assets` 和 `query_vulnerabilities` 获取已有的侦察数据。如果数据不足，补充执行：
-- `scan_dns` — 子域名
-- `scan_port` — 端口
-- `scan_finger` — 指纹
+用 `evidence_list`（按类型筛选资产记录）和 `list_vulns` 获取已有的侦察数据。如果数据不足，补充执行：
+- `subfinder -d domain` / `ksubdomain -d domain` — 子域名
+- `naabu -host target` — 端口（nmap 作为备选）
+- `httpx -u target -tech-detect` / `curl -sI target` — 指纹
 
 ## Phase 2: 攻击面分析
 
