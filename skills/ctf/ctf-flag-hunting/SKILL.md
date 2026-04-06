@@ -43,6 +43,7 @@ cat /flag.txt && cat /flag && cat /root/flag.txt && cat /home/*/flag.txt
 cat /var/www/html/flag.txt
 cat /var/www/html/flag.php
 cat /tmp/flag
+cat /tmp/flag.txt
 cat /opt/flag.txt
 cat /app/flag.txt
 ```

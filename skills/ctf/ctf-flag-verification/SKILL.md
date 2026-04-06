@@ -32,16 +32,16 @@ metadata:
 - ⚠️ 路径大小写敏感：`/flag.txt` ≠ `/Flag.txt` ≠ `/FLAG.txt`
 
 **Web 页面解析：**
-- Flag 可能在 HTML 注释 `<!-- FLAG{...} -->` 中
-- Flag 可能在 HTML 属性 `data-flag="FLAG{...}"` 中
-- Flag 可能在 JavaScript 变量 `var flag = "FLAG{...}"` 中
-- 用 Python `re.search(r'FLAG\{[a-fA-F0-9_-]+\}', html_text)` 提取
+- Flag 可能在 HTML 注释 `<!-- flag{...} -->` 中
+- Flag 可能在 HTML 属性 `data-flag="flag{...}"` 中
+- Flag 可能在 JavaScript 变量 `var flag = "flag{...}"` 中
+- 用 Python `re.search(r'flag\{[a-fA-F0-9_-]+\}', html_text)` 提取
 
 ### 1.2 长度验证
 
 如果你通过 SQL `LENGTH()` 或其他方式获知了 flag 的预期长度，用 Python 验证：
 ```python
-flag = "FLAG{...extracted...}"
+flag = "flag{...extracted...}"
 expected_length = 70  # 从 LENGTH() 获得
 assert len(flag) == expected_length, f"MISMATCH! {len(flag)} != {expected_length}"
 ```
@@ -50,8 +50,8 @@ assert len(flag) == expected_length, f"MISMATCH! {len(flag)} != {expected_length
 
 ```python
 import re
-flag = "FLAG{...}"
-assert re.match(r'^FLAG\{[a-fA-F0-9_-]+\}$', flag), f"Invalid format: {flag}"
+flag = "flag{...}"
+assert re.match(r'^flag\{[a-fA-F0-9_-]+\}$', flag), f"Invalid format: {flag}"
 assert flag.endswith('}'), "Missing } — flag 可能被截断"
 ```
 
@@ -75,4 +75,4 @@ assert flag.endswith('}'), "Missing } — flag 可能被截断"
 ### 1.6 字符级验证问题
 - Flag 中间丢失字符时，检查位置 29-32 区域，可能存在偏移错误导致遗漏字符
 - HTML 实体还原：`&lt;` 变成 `<`，`&amp;` 变成 `&`，网页显示与源码不同，需解码还原
-- 示例：`FLAG{a3b<c5d&e7f}` — 渲染后不同于源码，解码后才是正确 flag
+- 示例：`flag{a3b<c5d&e7f}` — 渲染后不同于源码，解码后才是正确 flag
