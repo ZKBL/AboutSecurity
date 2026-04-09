@@ -1,47 +1,67 @@
 # AboutSecurity
 
-* **Dic**
-    * Auth : 认证字典
-        * 账号和密码。
-    * Network : 网络
-        * 排除的私有 IP 段、本地 IP 段、dns 服务器列表。
-    * Port : 端口字典
-        * 按照端口渗透的想法,将不同端口承载的服务可爆破点作为字典内容。
-    * Regular : 规则字典
-        * 各种规则、排列的字典整理。
-    * Web : Web 字典
-        * web 渗透过程中出现的可爆破点作为字典内容。
-* **Payload**
-    * Burp
-    * CORS
-    * email
-    * Format
-    * HPP
-    * LFI
-    * OOB
-    * SQL-Inj
-    * SSI
-    * XSS
-    * XXE
-* **Skills** — AI Agent 技能方法论 (skills)
-    * cloud : 云环境类 — 云元数据利用、IAM 权限审计与提权
-    * ctf : CTF 竞赛类 — Web 解题方法论、CTF 侦察、源码审计、Flag 搜索、Flag 校验
-    * evasion : 免杀对抗类 — C2 框架免杀、Shellcode Loader 生成、免杀技术整合、安全研究
-    * exploit : 漏洞利用类 — SQL 注入、XSS、SSTI、文件上传、反序列化、JWT、GraphQL、SSRF/XXE、CORS、CSRF、OAuth、WebSocket、竞态条件、缓存投毒/请求走私等
-    * general : 综合类 — 红队评估、移动后端 API、报告生成、供应链审计
-    * lateral : 内网渗透类 — AD 域攻击、内网侦察、多层网络穿透
-    * postexploit : 后渗透类 — Linux/Windows 后渗透、提权检查、凭据喷射、横向移动、持久化
-    * recon : 侦察类 — 资产侦察、被动信息收集、子域名深挖、目标画像、社会工程
-    * tool : 工具类 — 开源工具使用说明
-    * 📊 **Skill Benchmark**: `python scripts/bench-skill.py --all` — A/B 测试 Skill 对 Agent 的实际效果
-* **Tools** — 外部工具声明式 YAML 配置
-    * scan : 扫描工具 (nmap, masscan)
-    * fuzz : Fuzz 工具 (dirsearch)
-* **Doc**
-    * **Checklist** : 渗透测试过程中的检查项,杜绝少测、漏测的情况。
-    * **Cheatsheet** : 渗透测试信息收集表,渗透测试时直接复制一副作为参考、信息记录、方便团队协作、出报告等。
-    * **出报告专用** : 记录部分平常渗透测试遇到的案例。
-    * **行业名词**
+渗透测试知识库，以 AI Agent 可执行的格式沉淀安全方法论。
+
+## 核心模块
+
+**Skills/** — 113 个技能方法论，覆盖侦察到后渗透全流程
+
+- `cloud/` — 云环境（Docker逃逸、K8s攻击、AWS IAM、阿里云、腾讯云）
+- `ctf/` — CTF竞赛（Web解题、逆向、PWN、密码学、取证）
+- `evasion/` — 免杀对抗（C2框架、Shellcode生成、安全研究）
+- `exploit/` — 漏洞利用（SQL注入、XSS、SSTI、文件上传、反序列化、JWT、GraphQL、SSRF/XXE、CORS、CSRF、OAuth、WebSocket、竞态条件、缓存投毒/请求走私）
+- `general/` — 综合（报告生成、供应链审计、移动后端API）
+- `lateral/` — 横向移动（AD域攻击、NTLM中继、数据库横向）
+- `postexploit/` — 后渗透（Linux/Windows提权、持久化、凭据窃取）
+- `recon/` — 侦察（子域名枚举、被动信息收集、JS API提取）
+- `tool/` — 工具使用（fscan、nuclei、sqlmap、msfconsole、ffuf、hashcat）
+
+**Dict/** — 字典库
+
+- `Auth/` — 用户名/密码
+- `Network/` — IP段排除、DNS服务器
+- `Port/` — 按端口分类的爆破字典
+- `Web/` — Web目录、API参数、fuzz字典
+
+**Payload/** — 攻击载荷
+
+- `SQL-Inj/`、`XSS/`、`SSRF/`、`XXE/`、`LFI/`、`RCE/`、`upload/`、`CORS/`、`HPP/`、`Format/`、`SSI/`、`email/`
+
+**Tools/** — 外部工具声明式配置
+
+- `scan/`、`fuzz/`、`osint/`、`poc/`、`brute/`、`postexploit/`
+
+## Skill 格式
+
+```
+sql-injection-methodology/
+├── SKILL.md           # 决策树（触发条件 → 执行流程）
+├── references/        # 详细内容（payload + 脚本）
+└── evals/             # A/B 测试评估
+```
+
+SKILL.md 定义 AI Agent 的行为约束（NEVER/ALWAYS），references/ 目录按需加载详细内容。
+
+## Skill Benchmark
+
+`python scripts/bench-skill.py --all` 量化 Skill 对 Agent 效果的提升，结果记录在 `benchmarks/` 目录。
+
+## 快速开始
+
+```bash
+# 列出所有 Skill
+ls Skills/
+
+# 查看特定 Skill
+cat Skills/exploit/sql-injection-methodology/SKILL.md
+
+# 运行 Benchmark (需要本地配置好 claude code 使用)
+python scripts/bench-skill.py --skill sql-injection-methodology
+```
+
+## 贡献
+
+提交前阅读 [CONTRIBUTING.md](./CONTRIBUTING.md)，包括 Skill 格式规范、references 编写要求、benchmark 测试流程。
 
 ## 参考
 
