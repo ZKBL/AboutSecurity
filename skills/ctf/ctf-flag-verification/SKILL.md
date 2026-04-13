@@ -1,8 +1,8 @@
 ---
 name: ctf-flag-verification
-description: "CTF/靶场 Flag 提取后的强制验证流程。当通过任何方式（SQL注入/RCE/文件读取/源码审计）获取到 flag 后使用。防止因字符截断、编码错误、HTML实体等原因导致提交错误 flag。覆盖 SQL 注入分段提取、命令执行输出截断、文件读取编码、Web 页面解析等所有 flag 提取场景。务必在提交前使用此方法论验证"
+description: "CTF/靶场 Flag 强制验证流程。当通过**任何方式**发现疑似 flag 字符串（含 flag{、FLAG{、ctf{ 等格式）时**必须立即**使用此 skill 验证，不要直接提交。防止因字符截断、编码错误、HTML 实体、base64 不完整解码、hex 截断等原因导致提交错误 flag。即使 flag 看起来完整，也可能存在隐藏字符或编码问题。覆盖 SQL 注入分段提取、命令执行输出截断、文件读取编码、Web 页面解析等所有 flag 提取场景。任何时候看到 flag{ 字样都应触发此 skill"
 metadata:
-  tags: "ctf,flag,验证,benchmark,capture the flag,靶场,flag验证,sqli,rce,lfi,file-read,提交"
+  tags: "ctf,flag,验证,capture the flag,靶场,flag验证,sqli,rce,lfi,file-read,提交,flag{,疑似flag,flag格式,flag截断,编码还原,hex,base64解码,字符截断,HTML实体,提取验证"
   category: "ctf"
 ---
 

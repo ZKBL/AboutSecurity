@@ -1,8 +1,8 @@
 ---
 name: githacker-git-leak
-description: "使用 GitHacker 利用 .git 目录泄露漏洞恢复目标源码。GitHacker 是多线程 .git 泄露利用工具，相比 git-dumper/GitHack 能恢复更完整的内容——包括 stash、所有分支、标签、reflog。即使目标禁用了目录列表（403），也能通过暴力枚举恢复分支和标签。当发现目标存在 .git 目录泄露、需要恢复源码/提交历史/凭据时使用此技能"
+description: "使用 GitHacker 利用 .git 目录泄露漏洞恢复目标源码。GitHacker 是多线程 .git 泄露利用工具，相比 git-dumper/GitHack 能恢复更完整的内容——包括 stash、所有分支、标签、reflog。即使目标禁用了目录列表（403），也能通过暴力枚举恢复分支和标签。当目标 /.git/HEAD 或 /.git/config 返回 200、目录列表中发现 .git/ 目录、或侦察阶段发现版本控制相关文件时使用此技能。恢复源码后可查找硬编码凭据、API Key、数据库连接串"
 metadata:
-  tags: "githacker,git,leak,泄露,源码,source-code,dump,recovery,web,信息泄露"
+  tags: "githacker,git,leak,泄露,源码,source-code,dump,recovery,web,信息泄露,.git,.git/HEAD,.git/config,git目录,版本控制,git-dumper,git-hack,源码恢复,提交历史,代码泄露"
   category: "tool"
 ---
 
