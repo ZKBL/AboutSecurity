@@ -34,9 +34,12 @@
 
 - `SQL-Inj/`、`XSS/`、`SSRF/`、`XXE/`、`LFI/`、`RCE/`、`upload/`、`CORS/`、`HPP/`、`Format/`、`SSI/`、`email/`
 
-**Tools/** — 外部工具声明式配置
+**Tools/** — 外部工具声明式配置（程序化编排框架使用）
 
 - `scan/`、`fuzz/`、`osint/`、`poc/`、`brute/`、`postexploit/`
+- 详见 [Tools/README.md](./Tools/README.md)
+
+> **Tools/ vs skills/tool/ 的区别**：`Tools/` 下的 YAML 是面向**程序化工具编排框架**的结构化接口定义（参数类型、命令模板、输出解析器），适合自动化引擎调用；`skills/tool/` 下的 SKILL.md 是面向 **LLM Agent** 的自然语言方法论（何时用、怎么选参数、结果怎么判断）。如果你只使用 Claude Code 等 LLM Agent，关注 `skills/tool/` 即可。
 
 ## 项目 skills 介绍
 
