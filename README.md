@@ -43,28 +43,53 @@
 
 > **Tools/ vs skills/tool/ 的区别**：`Tools/` 下的 YAML 是面向**程序化工具编排框架**的结构化接口定义（参数类型、命令模板、输出解析器），适合自动化引擎调用；`skills/tool/` 下的 SKILL.md 是面向 **LLM Agent** 的自然语言方法论（何时用、怎么选参数、结果怎么判断）。如果你只使用 Claude Code 等 LLM Agent，关注 `skills/tool/` 即可。
 
+## 快速开始
+
+### 1. 克隆仓库
+
+```bash
+git clone https://github.com/your-org/AboutSecurity.git
+```
+
+### 2. 同步 Skills 到你的项目
+
+```bash
+# 将 190+ 安全技能同步到你的工作项目中
+cd AboutSecurity
+./scripts/sync-claude-skills.sh --target /path/to/your-project
+
+# 效果：在目标项目下生成 .claude/skills/<skill-name>/ 软链接
+# Claude Code 在该项目中工作时即可自动识别和调用这些技能
+```
+
+> 不传 `--target` 则同步到 AboutSecurity 仓库自身（适合直接在本仓库中使用 Agent）。新增或删除 skill 后重新执行一次即可。
+
+### 3. 使用字典与 Payload
+
+字典和 Payload 不需要 sync，在 Agent 对话中直接引用路径即可：
+
+```
+"用 /path/to/AboutSecurity/Dic/Auth/ 下的字典爆破目标 SSH"
+"加载 /path/to/AboutSecurity/Payload/XSS/ 的 payload 列表做 fuzz 测试"
+```
+
+Agent 通过 Read / Glob 工具直接读取这些文件，只需提供正确的仓库路径。
+
+<details>
+<summary><b>概念补充（新手可读）：什么是 Skill？为什么需要同步？</b></summary>
+
+- **Skill** = 一份结构化方法论文件（`SKILL.md`），告诉 AI Agent "遇到 X 场景该怎么做"
+- Claude Code 只识别 `.claude/skills/<name>/SKILL.md` 这种扁平结构
+- 本仓库按分类嵌套组织（如 `skills/exploit/web-method/sql-injection/SKILL.md`），sync 脚本负责创建软链接实现 嵌套 → 扁平 映射
+- 同步后 Agent 会根据对话上下文**自动匹配并加载**相关 Skill，无需手动指定
+
+</details>
+
+---
+
 ## 项目 skills 介绍
 
 [skills/README.md](./skills/README.md) 详细介绍了项目的 skills 分类架构、格式规范、Benchmark 测试流程。
-
-### sync-skills.sh 脚本
-
-```bash
-# 软链接模式（本地开发）
-./sync-skills.sh
-
-# 复制模式（远程部署）
-./sync-skills.sh --copy
-
-# 指定额外 skill 源（私有仓库）
-./sync-skills.sh --extra-source /path/to/private-skills
-```
-
-脚本逻辑：
-1. `find` 所有包含 `SKILL.md` 的目录
-2. 按目录名（skill-name）去重，先到先得（主源优先）
-3. 排除配置的分类（如 `ai-security|evasion`）
-4. 创建软链接或复制到 `.claude/skills/<skill-name>/`
 
 ## 贡献
 
