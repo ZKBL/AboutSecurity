@@ -17,10 +17,14 @@ Penetration testing knowledge base with security methodologies in AI Agent-execu
 - `exploit/` — Exploitation (organized by subcategory)
   - `advanced/` — Advanced exploitation (HTTP smuggling, race conditions, supply chain attacks, OT/ICS, crypto attacks)
   - `auth/` — Authentication & authorization (JWT, OAuth/SSO, IDOR, CORS, CSRF, cookie analysis)
+  - `binary/` — Binary exploitation methodology and tools
+  - `network-service/` — Network service pentesting by port/protocol (SMB, FTP, SMTP, DNS, LDAP, etc.)
   - `web-method/` — Web methodology (injection, XSS, SSRF, SSTI, file upload, deserialization, WAF bypass...)
 - `general/` — General (report generation, supply chain auditing, mobile backend API)
+- `hardware/` — Hardware/physical access pentesting
 - `lateral/` — Lateral movement (AD domain attacks, NTLM relay, database pivoting, Kerberoasting, ACL abuse)
 - `malware/` — Malware (sample analysis methodology, C2 beacon config extraction, sandbox evasion)
+- `mobile/` — Mobile app pentesting (Android, iOS)
 - `postexploit/` — Post-exploitation
   - `post-exploit-linux/` / `post-exploit-windows/` — OS-level privilege escalation, credential theft
   - `persist-maintain/` — Persistence techniques (cron, services, webshell)

@@ -17,10 +17,14 @@
 - `exploit/` — 漏洞利用（按子分类组织）
   - `advanced/` — 高级利用（HTTP走私、竞态条件、供应链攻击、OT/ICS、加密攻击）
   - `auth/` — 认证授权（JWT、OAuth/SSO、IDOR、CORS、CSRF、Cookie分析）
+  - `binary/` — 二进制漏洞利用方法论与工具集
+  - `network-service/` — 按端口/协议的网络服务渗透方法论（SMB、FTP、SMTP、DNS、LDAP 等）
   - `web-method/` — Web 通用方法论（注入、XSS、SSRF、SSTI、文件上传、反序列化、WAF绕过…）
 - `general/` — 综合（报告生成、供应链审计、移动后端API）
+- `hardware/` — 硬件/物理安全渗透
 - `lateral/` — 横向移动（AD域攻击、NTLM中继、数据库横向、Kerberoasting、ACL滥用）
 - `malware/` — 恶意软件（样本分析方法论、C2 Beacon配置提取、沙箱逃逸实现）
+- `mobile/` — 移动应用渗透（Android、iOS）
 - `postexploit/` — 后渗透
   - `post-exploit-linux/` / `post-exploit-windows/` — OS 级提权、凭据窃取
   - `persist-maintain/` — 持久化技术（cron、服务、webshell）
