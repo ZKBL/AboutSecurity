@@ -6,6 +6,8 @@ metadata:
   category: "cloud"
 ---
 
+→ 读 [references/network-attacks.md](references/network-attacks.md)
+
 # Kubernetes 集群内网络侦察
 
 在 K8s 集群中横向移动的第一步是弄清楚还有哪些服务在运行。因为 K8s 用 DNS 做服务发现，每个 Service 和 Pod 都有可预测的 DNS 名称，这意味着通过 DNS 反查就能系统性地枚举整个集群。

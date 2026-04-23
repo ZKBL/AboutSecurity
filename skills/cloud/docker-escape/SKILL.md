@@ -13,7 +13,8 @@ metadata:
 
 ## ⛔ 深入参考（必读）
 
-- 各种逃逸方法的完整 payload 和利用条件 → [references/escape-methods.md](references/escape-methods.md)
+- 各种逃逸方法的完整 payload 和利用条件 → 读 [references/escape-methods.md](references/escape-methods.md)
+- Docker Build Context 滥用（CI/CD 场景的路径穿越与 Secret 泄露）→ 读 [references/escape-methods.md](references/escape-methods.md) 第 12 节
 
 ---
 
