@@ -124,8 +124,6 @@ LFI 比 RCE 限制更多——只能读文件，不能执行命令。
 4. **源码文件**：`/var/www/html/index.php`、`/app/app.py` — 可能发现 RCE 入口
 5. **日志文件**：`/var/log/apache2/access.log` — 日志投毒准备
 
-**LFI 转 RCE**（读完配置后仍找不到 flag）：
-
 ---
 
 ## Phase 4: SQLi — 数据库搜索
