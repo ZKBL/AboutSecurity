@@ -13,6 +13,9 @@ NTLM Relay 是域渗透最强大的横向移动技术之一——不需要破解
 ## ⛔ 深入参考（必读）
 
 - 中继攻击详细配置和各种中继目标 → [references/relay-techniques.md](references/relay-techniques.md)
+- 强制认证方法（PetitPotam/PrinterBug/DFSCoerce/文件投毒等） → [references/coercion-methods.md](references/coercion-methods.md)
+- Responder 配置与投毒机制（LLMNR/WPAD/mitm6） → [references/responder-config.md](references/responder-config.md)
+- SOCKS 代理横向移动（ntlmrelayx SOCKS + proxychains） → [references/socks-pivoting.md](references/socks-pivoting.md)
 
 ---
 

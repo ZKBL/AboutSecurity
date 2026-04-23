@@ -8,6 +8,12 @@ metadata:
 
 # 凭据喷洒攻击方法论
 
+## ⛔ 深入参考（必读）
+
+- 需要喷洒前的凭据枚举与收集方法 → [references/pre-cred-enumeration.md](references/pre-cred-enumeration.md)
+
+---
+
 凭据喷洒和暴力破解不同——暴力破解是对一个账户试很多密码，凭据喷洒是**用一个密码试很多账户**。后者不容易触发账户锁定。
 
 ## Phase 1: 凭据清点

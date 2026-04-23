@@ -10,6 +10,9 @@ metadata:
 
 ## ⛔ 深入参考（必读）
 
+- 需要凭据提取与转储方法 → [references/credential-extraction.md](references/credential-extraction.md)
+- 需要远程执行技术对比与选择 → [references/remote-execution-comparison.md](references/remote-execution-comparison.md)
+- 需要 PTH/PTT/PTK 传递攻击技术 → [references/pass-techniques.md](references/pass-techniques.md)
 - 需要 WinRM/PSExec/WMI/DCOM/RDP/PTT 各技术的具体命令 → [references/movement-techniques.md](references/movement-techniques.md)
 
 ---

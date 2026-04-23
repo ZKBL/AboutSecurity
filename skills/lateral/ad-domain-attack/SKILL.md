@@ -13,6 +13,8 @@ metadata:
 
 ## ⛔ 深入参考（必读）
 
+- 需要域侦察环境搭建与初始枚举 → [references/ad-recon-setup.md](references/ad-recon-setup.md)
+- 需要认证后深度枚举方法 → [references/authenticated-enum.md](references/authenticated-enum.md)
 - 需要密码喷洒、AS-REP Roasting、Kerberoasting 详细命令 → [references/credential-attacks.md](references/credential-attacks.md)
 - 需要委派攻击(RBCD)、ACL 滥用、DCSync、持久化 → [references/domain-escalation.md](references/domain-escalation.md)
 

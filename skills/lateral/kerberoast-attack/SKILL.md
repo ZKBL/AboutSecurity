@@ -14,6 +14,7 @@ metadata:
 ## ⛔ 深入参考
 
 - Hashcat 破解模式与字典策略 → [references/hash-cracking.md](references/hash-cracking.md)
+- 多 Hash 类型 GPU 基准与高级破解工程 → [references/hash-cracking-guide.md](references/hash-cracking-guide.md)
 - 防御绕过与高级利用 → [references/advanced-kerberoast.md](references/advanced-kerberoast.md)
 
 ---

