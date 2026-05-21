@@ -484,11 +484,11 @@ steps:
 
 ## 8. Serverless Framework
 
-### 8.1 IAM Role 提权
+### 8.1 部署凭据与 IAM Role 风险
 
-Serverless Framework 部署到 AWS 时创建的 IAM Role（`SFRole`）默认附加 `AdministratorAccess` 策略。窃取 Serverless.com 的 Access Key 或 License Key 等于获取目标 AWS 账户的管理员权限。
+Serverless Framework 部署到 AWS 时会使用本地 AWS 凭据或 Serverless Dashboard 配置的部署身份创建/更新 Lambda、IAM Role、API Gateway 等资源。实际影响取决于部署身份和生成的 Lambda 执行角色权限；不要默认假设执行角色拥有 `AdministratorAccess`。
 
-**Access Key 存储位置：** 本地 `SERVERLESS_ACCESS_KEY` 环境变量或 `serverless` CLI 登录后的本地存储。
+**Access Key 存储位置：** 本地 `SERVERLESS_ACCESS_KEY` 环境变量或 `serverless` CLI 登录后的本地存储。拿到该 Key 后优先枚举可访问的 org/app/stage 和关联云 Provider 权限，再判断是否可影响目标 AWS 账户。
 
 ### 8.2 Plugin 投毒
 

