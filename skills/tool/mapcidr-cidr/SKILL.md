@@ -25,7 +25,7 @@ echo 10.0.0.0/16 | mapcidr -count
 cat ips.txt | mapcidr -aggregate
 
 # 打乱 IP 顺序（避免顺序扫描触发告警）
-echo 192.168.1.0/24 | mapcidr -shuffle
+echo 192.168.1.0/24 | mapcidr -si
 
 # 跳过基址和广播地址
 echo 192.168.1.0/24 | mapcidr -skip-base -skip-broadcast
@@ -49,7 +49,7 @@ echo 10.0.0.0/16 | mapcidr -sbc 24 | \
 
 ```bash
 # CIDR 展开 → 端口扫描
-echo 10.0.0.0/24 | mapcidr -shuffle | naabu -p 80,443 -silent
+echo 10.0.0.0/24 | mapcidr -si | naabu -p 80,443 -silent
 
 # IP 去重聚合
 cat scan_results.txt | mapcidr -aggregate

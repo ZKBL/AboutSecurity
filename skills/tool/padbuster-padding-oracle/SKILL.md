@@ -75,6 +75,6 @@ padbuster "http://target/?data=ENC" "ENC" 16 \
 |--------|------|------|
 | 0 | Base64 | 最常见 |
 | 1 | hex (小写) | a-f 格式 |
-| 2 | .NET URL token | ASP.NET 特有 |
-| 3 | WebSafe Base64 | URL 安全的 Base64 |
-| 4 | hex (大写) | A-F 格式 |
+| 2 | hex (大写) | A-F 格式 |
+| 3 | .NET UrlToken | ASP.NET 特有 |
+| 4 | WebSafe Base64 | URL 安全的 Base64 |

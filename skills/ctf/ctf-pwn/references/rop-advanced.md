@@ -195,7 +195,7 @@ objdump -d libc.so.6 | grep -w retf
 
 ## .fini_array Hijack
 
-**When to use:** Writable `.fini_array` + arbitrary write primitive. When `main()` returns, entries called as function pointers. Works even with Full RELRO.
+**When to use:** Writable `.fini_array` + arbitrary write primitive. When `main()` returns, entries called as function pointers. Under Full RELRO, `.fini_array` is normally in GNU_RELRO and becomes read-only after relocations.
 
 ```python
 # Find .fini_array address
@@ -209,7 +209,7 @@ writes = {
 }
 ```
 
-**Advantages over GOT overwrite:** Works even with Full RELRO (`.fini_array` is in a different section). Especially useful when combined with RWX regions for shellcode.
+**Advantages over GOT overwrite:** Can remain useful when GOT overwrite is blocked but `.fini_array` is still writable, such as No/Partial RELRO or unusual linker layout. Especially useful when combined with RWX regions for shellcode.
 
 ## pwntools Template
 

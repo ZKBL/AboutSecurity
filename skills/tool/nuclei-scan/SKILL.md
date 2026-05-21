@@ -21,8 +21,8 @@ Nuclei 有 9000+ 模板，不加限制的全量扫描（`nuclei -u target`）需
 根据指纹识别结果选择对应模板，而非全量扫描：
 
 ```bash
-# 1. 按 CVE 编号精确扫描（最快，秒级）
-nuclei -u http://target -t cves/ -tags CVE-2021-44228
+# 1. 按模板 ID / CVE 编号精确扫描（最快，秒级）
+nuclei -u http://target -id CVE-2021-44228
 
 # 2. 按产品名过滤（几十秒）
 nuclei -u http://target -t cves/ -tags apache

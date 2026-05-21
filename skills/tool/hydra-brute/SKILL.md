@@ -92,8 +92,8 @@ hydra -R
 # 详细输出
 hydra -l admin -P passwords.txt -V ssh://target
 
-# 使用代理
-hydra -l admin -P passwords.txt ssh://target HYDRA_PROXY_HTTP=http://proxy:8080
+# 使用代理（HTTP 模块用 HYDRA_PROXY_HTTP；SSH 等非 HTTP 模块用 HYDRA_PROXY）
+HYDRA_PROXY=socks5://127.0.0.1:1080 hydra -l admin -P passwords.txt ssh://target
 ```
 
 ## 渗透测试常用组合

@@ -55,7 +55,7 @@ nikto -h http://target.com -maxtime 300
 nikto -h http://target.com -id admin:password
 
 # Cookie 认证
-nikto -h http://target.com -C "session=abc123"
+nikto -h http://target.com -Add-header "Cookie: session=abc123"
 
 # 自定义 User-Agent
 nikto -h http://target.com -useragent "Mozilla/5.0"
