@@ -198,3 +198,4 @@ AboutSecurity is the knowledge layer of the **WgpSec Agentic Ecosystem** — a f
 - https://github.com/RuoJi6/java-audit-skills
 - https://github.com/HackTricks-wiki/hacktricks
 - https://github.com/HackTricks-wiki/hacktricks-cloud
+- https://github.com/swisskyrepo/InternalAllTheThings
