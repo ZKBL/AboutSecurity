@@ -159,11 +159,12 @@ git diff --name-status $(git merge-base HEAD origin/master)..origin/master
 
 实施顺序：
 
-1. 先编辑最小必要文件。
-2. 保持原有标题层级、语言风格和相对链接风格。
-3. 新增 reference 时检查是否需要从 SKILL.md 或相邻 reference 增加入口链接。
-4. 不创建无关 docs、计划文件或总结文件，除非用户明确要求。
-5. 不提交 git commit，除非用户明确要求提交。
+1. skill 的改动和编写前，请加载 /skill-creator
+2. 先编辑最小必要文件。
+3. 保持原有标题层级、语言风格和相对链接风格。
+4. 新增 reference 时检查是否需要从 SKILL.md 或相邻 reference 增加入口链接。
+5. 不创建无关 docs、计划文件或总结文件，除非用户明确要求。
+6. 不提交 git commit，除非用户明确要求提交。
 
 写作格式：
 

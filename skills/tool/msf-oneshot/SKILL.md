@@ -19,7 +19,8 @@ MSF 有两种调用方式，分别适合不同场景：
 
 ## 参考资料
 
-常用 exploit 模块速查表和 payload 生成指南 → [references/msf-modules.md](references/msf-modules.md)
+- 常用 exploit 模块速查表和 payload 生成指南 → [references/msf-modules.md](references/msf-modules.md)
+- Meterpreter 会话、转发与自动化 → [references/meterpreter-operations.md](references/meterpreter-operations.md)
 
 ---
 
@@ -211,7 +212,7 @@ interactive_session(action="start", session_name="msf_handler", command="msfcons
 
 ## Phase 6: 后渗透操作（interactive_session）
 
-获取 meterpreter session 后，通过 `interactive_session` 执行后渗透命令。meterpreter 是交互式 shell，只有在持久会话中才能充分使用。
+获取 meterpreter session 后，通过 `interactive_session` 执行后渗透命令。meterpreter 是交互式 shell，只有在持久会话中才能充分使用。复杂的 session 管理、端口转发、SOCKS、Kiwi、resource script 和 multiple transports 见 [references/meterpreter-operations.md](references/meterpreter-operations.md)。
 
 ### 进入 session 并收集信息
 
@@ -252,6 +253,12 @@ interactive_session(action="send", session_name="msf_handler", command="sessions
 
 # 切换到另一个 session
 interactive_session(action="send", session_name="msf_handler", command="sessions -i 2", wait=3)
+
+# 批量执行低噪声确认命令
+interactive_session(action="send", session_name="msf_handler", command="sessions -c whoami", wait=3)
+
+# 返回主控台但保持 session 存活
+interactive_session(action="send", session_name="msf_handler", command="background", wait=3)
 
 # 结束操作后关闭 MSF
 interactive_session(action="close", session_name="msf_handler")
